@@ -55,8 +55,8 @@ export const useGitHubData = () => {
         // Get backend URL from environment
         const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://askme-backend-proxy.onrender.com';
         
-        // Call your backend proxy endpoint
-        const response = await fetch(`${backendUrl}/api/llm-data`);
+        // Call your backend proxy endpoint - updated to match available endpoint
+        const response = await fetch(`${backendUrl}/api/github/llm-data`);
         
         if (!response.ok) {
           throw new Error(`Backend API returned ${response.status}: ${response.statusText}`);
