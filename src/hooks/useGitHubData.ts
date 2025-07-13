@@ -1,11 +1,5 @@
 
 import { useQuery } from '@tanstack/react-query';
-import JSZip from 'jszip';
-
-const GITHUB_OWNER = 'vn6295337';
-const GITHUB_REPO = 'askme';
-const WORKFLOW_FILE = 'scout-agent.yml';
-const ARTIFACT_NAME = 'model-validation-results';
 
 // Local storage keys for caching and change tracking
 const CACHE_KEY = 'llm-dashboard-cache';
@@ -58,67 +52,23 @@ export const useGitHubData = () => {
       let fallbackReason = '';
 
       try {
-        // Fetch workflow runs
-        const runsUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/actions/workflows/${WORKFLOW_FILE}/runs?per_page=10`;
-        const runsResponse = await fetch(runsUrl);
+        // Get backend URL from environment
+        const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://askme-backend-proxy.onrender.com';
         
-        if (!runsResponse.ok) {
-          throw new Error(`GitHub API returned ${runsResponse.status}: ${runsResponse.statusText}`);
+        // Call your backend proxy endpoint
+        const response = await fetch(`${backendUrl}/api/llm-data`);
+        
+        if (!response.ok) {
+          throw new Error(`Backend API returned ${response.status}: ${response.statusText}`);
         }
         
-        const { workflow_runs } = await runsResponse.json();
+        const data = await response.json();
         
-        if (!workflow_runs || workflow_runs.length === 0) {
-          fallbackReason = 'No workflow runs found';
-          throw new Error('No workflow runs available');
-        }
-
-        // Find the most recent successful run
-        const successfulRun = workflow_runs.find((r: any) => r.conclusion === 'success');
-        
-        if (!successfulRun) {
-          fallbackReason = 'No successful workflow runs found';
-          throw new Error('No successful workflow runs available');
+        if (!data.models || !Array.isArray(data.models)) {
+          throw new Error('Invalid data format received from backend');
         }
 
-        const latestRun = workflow_runs[0];
-        const isOutdated = latestRun.id !== successfulRun.id;
-
-        // Fetch and download artifact
-        const artifactsUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/actions/runs/${successfulRun.id}/artifacts`;
-        const artifactsResponse = await fetch(artifactsUrl);
-        
-        if (!artifactsResponse.ok) {
-          throw new Error(`Failed to fetch artifacts: ${artifactsResponse.status}`);
-        }
-        
-        const { artifacts } = await artifactsResponse.json();
-        const targetArtifact = artifacts.find((a: any) => a.name === ARTIFACT_NAME);
-        
-        if (!targetArtifact) {
-          throw new Error(`Artifact "${ARTIFACT_NAME}" not found`);
-        }
-
-        const zipResponse = await fetch(targetArtifact.archive_download_url, {
-          headers: { 'Accept': 'application/vnd.github+json' }
-        });
-        
-        if (!zipResponse.ok) {
-          throw new Error(`Failed to download artifact: ${zipResponse.status}`);
-        }
-        
-        const blob = await zipResponse.blob();
-        const zip = await JSZip.loadAsync(blob);
-        const jsonFile = Object.keys(zip.files).find(k => 
-          k.endsWith('validated_models.json') || k.endsWith('.json')
-        );
-        
-        if (!jsonFile) {
-          throw new Error('validated_models.json not found in artifact');
-        }
-        
-        const content = await zip.files[jsonFile].async('string');
-        const models: LLMModel[] = JSON.parse(content);
+        const models: LLMModel[] = data.models;
 
         // Calculate metrics
         const totalProviders = new Set(models.map(m => m.provider)).size;
@@ -143,23 +93,23 @@ export const useGitHubData = () => {
           totalAvailableModels,
           availableModelsChange,
           modelsExcluded,
-          lastUpdate: new Date(successfulRun.created_at),
+          lastUpdate: new Date(data.lastUpdate || Date.now()),
           nextUpdate: new Date(Date.now() + 15 * 60 * 1000),
-          dataSource: isOutdated ? `${targetArtifact.name} (using previous successful run)` : targetArtifact.name
+          dataSource: data.dataSource || 'Backend API'
         };
 
         const status: WorkflowStatus = {
-          status: successfulRun.conclusion || 'success',
-          lastRun: new Date(successfulRun.created_at),
-          runNumber: successfulRun.run_number
+          status: data.status?.status || 'success',
+          lastRun: new Date(data.status?.lastRun || Date.now()),
+          runNumber: data.status?.runNumber || 1
         };
 
         const result = { 
           models, 
           metrics, 
           status, 
-          isOutdated,
-          fallbackReason: isOutdated ? 'Latest run failed, using previous successful data' : ''
+          isOutdated: data.isOutdated || false,
+          fallbackReason: data.fallbackReason || ''
         };
 
         // Cache successful data and store current metrics for next comparison
@@ -169,7 +119,7 @@ export const useGitHubData = () => {
             metrics,
             status,
             cachedAt: new Date().toISOString(),
-            originalDataSource: targetArtifact.name
+            originalDataSource: data.dataSource || 'Backend API'
           }));
           localStorage.setItem(CACHE_TIMESTAMP_KEY, new Date().toISOString());
           localStorage.setItem(PREVIOUS_METRICS_KEY, JSON.stringify(metrics));
@@ -180,7 +130,7 @@ export const useGitHubData = () => {
         return result;
 
       } catch (error) {
-        console.warn('Primary data fetch failed:', error);
+        console.warn('Backend data fetch failed:', error);
         
         // FALLBACK: Try to use cached data
         try {
@@ -207,14 +157,14 @@ export const useGitHubData = () => {
                 status: 'failure' as const
               },
               isOutdated: true,
-              fallbackReason: fallbackReason || 'Using cached data due to connection issues'
+              fallbackReason: fallbackReason || 'Using cached data due to backend connection issues'
             };
           }
         } catch (cacheError) {
           console.warn('Failed to load cached data:', cacheError);
         }
 
-        throw new Error(fallbackReason || (error as Error).message || 'Failed to load data and no cache available');
+        throw new Error(fallbackReason || (error as Error).message || 'Failed to load data from backend and no cache available');
       }
     },
     refetchInterval: 15 * 60 * 1000,
