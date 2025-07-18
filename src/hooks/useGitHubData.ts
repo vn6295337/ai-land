@@ -1,6 +1,8 @@
 
 import { useQuery } from '@tanstack/react-query';
 
+const BACKEND_URL = process.env.VITE_BACKEND_URL || 'https://askme-backend-proxy.onrender.com';
+
 // Local storage keys for caching and change tracking
 const CACHE_KEY = 'llm-dashboard-cache';
 const CACHE_TIMESTAMP_KEY = 'llm-dashboard-cache-timestamp';
@@ -13,27 +15,66 @@ interface LLMModel {
   registration_required: boolean;
   free_tier: boolean;
   auth_method: string;
-  documentation_url: string;
-  notes: string;
-  quality_verified: boolean;
-  trusted_source: boolean;
-  validation_reason: string;
+  documentation_url?: string;
+  backend_url?: string;
+  health_status: string;
+  response_time: string | number;
+  last_validated: string;
+  geographic_origin_verified: boolean;
+  allowed_region: boolean;
+  origin_reason: string;
+  notes?: string;
 }
 
 interface DashboardMetrics {
   totalProviders: number;
   totalAvailableModels: number;
-  availableModelsChange: number; // Change from last update
+  availableModelsChange: number;
   modelsExcluded: number;
   lastUpdate: Date;
   nextUpdate: Date;
   dataSource: string;
+  avgResponseTime: number;
+  successRate: number;
 }
 
 interface WorkflowStatus {
   status: 'success' | 'failure' | 'in_progress';
   lastRun: Date;
-  runNumber: number;
+  runNumber?: number;
+  healthChecks?: {
+    passed: number;
+    total: number;
+  };
+}
+
+interface ValidationData {
+  timestamp: string;
+  scout_agent_version: string;
+  backend_url: string;
+  validation_summary: {
+    total_models: number;
+    total_eligible: number;
+    providers: string[];
+    active_providers: number;
+  };
+  validated_models: LLMModel[];
+  eligible_models: any[];
+  dashboard_data: {
+    provider_status: Array<{
+      provider: string;
+      model_name: string;
+      status: string;
+      response_time: string | number;
+      last_validated: string;
+    }>;
+    performance_metrics: {
+      total_providers: number;
+      active_providers: number;
+      average_response_time: number;
+      success_rate: number;
+    };
+  };
 }
 
 interface CachedData {
@@ -52,26 +93,24 @@ export const useGitHubData = () => {
       let fallbackReason = '';
 
       try {
-        // Get backend URL from environment
-        const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://askme-backend-proxy.onrender.com';
-        
-        // Call your backend proxy endpoint - updated to match available endpoint
-        const response = await fetch(`${backendUrl}/api/github/llm-data`);
-        
-        if (!response.ok) {
-          throw new Error(`Backend API returned ${response.status}: ${response.statusText}`);
-        }
-        
-        const data = await response.json();
-        
-        if (!data.models || !Array.isArray(data.models)) {
-          throw new Error('Invalid data format received from backend');
+        // First, try to get scout-agent validation data
+        const validationResponse = await fetch(`${BACKEND_URL}/api/github/llm-data`);
+
+        if (!validationResponse.ok) {
+          throw new Error(`Backend API returned ${validationResponse.status}: ${validationResponse.statusText}`);
         }
 
-        const models: LLMModel[] = data.models;
+        const validationData: ValidationData = await validationResponse.json();
 
-        // Calculate metrics
-        const totalProviders = new Set(models.map(m => m.provider)).size;
+        if (!validationData.validated_models || !Array.isArray(validationData.validated_models)) {
+          throw new Error('Invalid data format from backend');
+        }
+
+        const models = validationData.validated_models;
+        const dashboardData = validationData.dashboard_data;
+
+        // Calculate metrics from the scout-agent data
+        const totalProviders = dashboardData.performance_metrics.total_providers;
         const totalAvailableModels = models.filter(m => m.api_available).length;
         const totalModels = models.length;
         const modelsExcluded = totalModels - totalAvailableModels;
@@ -93,33 +132,52 @@ export const useGitHubData = () => {
           totalAvailableModels,
           availableModelsChange,
           modelsExcluded,
-          lastUpdate: new Date(data.lastUpdate || Date.now()),
-          nextUpdate: new Date(Date.now() + 15 * 60 * 1000),
-          dataSource: data.dataSource || 'Backend API'
+          lastUpdate: new Date(validationData.timestamp),
+          nextUpdate: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes from now
+          dataSource: 'Scout Agent Validation',
+          avgResponseTime: dashboardData.performance_metrics.average_response_time || 0,
+          successRate: dashboardData.performance_metrics.success_rate || 0
         };
 
-        const status: WorkflowStatus = {
-          status: data.status?.status || 'success',
-          lastRun: new Date(data.status?.lastRun || Date.now()),
-          runNumber: data.status?.runNumber || 1
+        // Get backend health status
+        let healthStatus: WorkflowStatus = {
+          status: 'success',
+          lastRun: new Date(validationData.timestamp),
+          healthChecks: {
+            passed: dashboardData.performance_metrics.active_providers,
+            total: dashboardData.performance_metrics.total_providers
+          }
         };
 
-        const result = { 
-          models, 
-          metrics, 
-          status, 
-          isOutdated: data.isOutdated || false,
-          fallbackReason: data.fallbackReason || ''
+        // Try to get additional health data
+        try {
+          const healthResponse = await fetch(`${BACKEND_URL}/api/github/llm-health`);
+          if (healthResponse.ok) {
+            const healthData = await healthResponse.json();
+            if (healthData.overall_status) {
+              healthStatus.status = healthData.overall_status === 'healthy' ? 'success' : 'failure';
+            }
+          }
+        } catch (healthError) {
+          console.warn('Could not fetch health data:', healthError);
+        }
+
+        const result = {
+          models,
+          metrics,
+          status: healthStatus,
+          isOutdated: false,
+          fallbackReason: ''
         };
 
-        // Cache successful data and store current metrics for next comparison
+        // Cache successful data
         try {
           localStorage.setItem(CACHE_KEY, JSON.stringify({
             models,
             metrics,
-            status,
+            status: healthStatus,
             cachedAt: new Date().toISOString(),
-            originalDataSource: data.dataSource || 'Backend API'
+            originalDataSource: 'Scout Agent Backend'
           }));
           localStorage.setItem(CACHE_TIMESTAMP_KEY, new Date().toISOString());
           localStorage.setItem(PREVIOUS_METRICS_KEY, JSON.stringify(metrics));
@@ -130,18 +188,19 @@ export const useGitHubData = () => {
         return result;
 
       } catch (error) {
-        console.warn('Backend data fetch failed:', error);
-        
+        console.warn('Primary data fetch failed:', error);
+        errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
         // FALLBACK: Try to use cached data
         try {
           const cachedDataStr = localStorage.getItem(CACHE_KEY);
           const cacheTimestamp = localStorage.getItem(CACHE_TIMESTAMP_KEY);
-          
+
           if (cachedDataStr && cacheTimestamp) {
             const cachedData: CachedData = JSON.parse(cachedDataStr);
             const cacheAge = Date.now() - new Date(cacheTimestamp).getTime();
             const cacheAgeHours = Math.round(cacheAge / (1000 * 60 * 60));
-            
+
             const updatedMetrics = {
               ...cachedData.metrics,
               dataSource: `${cachedData.originalDataSource} (cached ${cacheAgeHours}h ago)`,
@@ -157,19 +216,19 @@ export const useGitHubData = () => {
                 status: 'failure' as const
               },
               isOutdated: true,
-              fallbackReason: fallbackReason || 'Using cached data due to backend connection issues'
+              fallbackReason: 'Using cached data due to backend unavailability'
             };
           }
         } catch (cacheError) {
           console.warn('Failed to load cached data:', cacheError);
         }
 
-        throw new Error(fallbackReason || (error as Error).message || 'Failed to load data from backend and no cache available');
+        throw new Error(`Backend unavailable: ${errorMessage}. Please check if the scout-agent workflow has run recently.`);
       }
     },
-    refetchInterval: 15 * 60 * 1000,
-    retry: 1,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 24 * 60 * 60 * 1000,
+    refetchInterval: 15 * 60 * 1000, // 15 minutes
+    retry: 2,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 24 * 60 * 60 * 1000, // 24 hours,
   });
 };

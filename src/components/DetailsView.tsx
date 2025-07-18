@@ -1,26 +1,26 @@
 
 import React, { useState, useMemo } from 'react';
 import { useGitHubData } from '../hooks/useGitHubData';
-import { Search, Check, X, ExternalLink } from 'lucide-react';
+import { Search, Check, X, ExternalLink, Globe, Zap, Shield } from 'lucide-react';
 
 export const DetailsView: React.FC = () => {
   const { data, isLoading, error } = useGitHubData();
   const [searchTerm, setSearchTerm] = useState('');
   const [providerFilter, setProviderFilter] = useState('all');
-  const [showOnlyVerified, setShowOnlyVerified] = useState(false);
+  const [showOnlyAvailable, setShowOnlyAvailable] = useState(false);
 
   const filteredModels = useMemo(() => {
     if (!data?.models) return [];
-    
+
     return data.models.filter(model => {
       const matchesSearch = model.model_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            model.provider.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesProvider = providerFilter === 'all' || model.provider === providerFilter;
-      const matchesVerified = !showOnlyVerified || model.quality_verified;
-      
-      return matchesSearch && matchesProvider && matchesVerified;
+      const matchesAvailable = !showOnlyAvailable || model.api_available;
+
+      return matchesSearch && matchesProvider && matchesAvailable;
     });
-  }, [data?.models, searchTerm, providerFilter, showOnlyVerified]);
+  }, [data?.models, searchTerm, providerFilter, showOnlyAvailable]);
 
   const providers = useMemo(() => {
     if (!data?.models) return [];
@@ -31,10 +31,12 @@ export const DetailsView: React.FC = () => {
     return <div className="animate-pulse bg-slate-200 dark:bg-slate-700 h-64 rounded-lg" />;
   }
 
-  if (error) {
+  if (error || !data) {
     return (
       <div className="bg-red-50 dark:bg-red-900/10 rounded-lg p-4">
-        <p className="text-sm text-red-600 dark:text-red-400">{(error as Error).message}</p>
+        <p className="text-sm text-red-600 dark:text-red-400">
+          {error?.message || 'Failed to load model data from scout-agent'}
+        </p>
       </div>
     );
   }
@@ -46,6 +48,21 @@ export const DetailsView: React.FC = () => {
       <X className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500" />
     )
   );
+
+  const getHealthStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'available':
+      case 'healthy':
+        return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300';
+      case 'degraded':
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
+      case 'unavailable':
+      case 'error':
+        return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
+      default:
+        return 'bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-300';
+    }
+  };
 
   return (
     <div className="space-y-3">
@@ -61,7 +78,7 @@ export const DetailsView: React.FC = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        
+
         <select
           className="px-2 py-1.5 text-sm border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
           value={providerFilter}
@@ -76,20 +93,20 @@ export const DetailsView: React.FC = () => {
         <label className="flex items-center space-x-1.5 px-2 py-1.5 text-sm">
           <input
             type="checkbox"
-            checked={showOnlyVerified}
-            onChange={(e) => setShowOnlyVerified(e.target.checked)}
+            checked={showOnlyAvailable}
+            onChange={(e) => setShowOnlyAvailable(e.target.checked)}
             className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 focus:ring-1"
           />
-          <span className="text-slate-700 dark:text-slate-300">Verified only</span>
+          <span className="text-slate-700 dark:text-slate-300">Available only</span>
         </label>
       </div>
 
       {/* Results Summary */}
       <div className="text-xs text-slate-600 dark:text-slate-400">
-        {filteredModels.length} of {data?.models.length} models
+        {filteredModels.length} of {data?.models.length} models • Last validated: {data.status.lastRun.toLocaleString()}
       </div>
 
-      {/* Streamlined Table */}
+      {/* Enhanced Table */}
       <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full">
@@ -102,19 +119,22 @@ export const DetailsView: React.FC = () => {
                   Provider
                 </th>
                 <th className="px-3 py-2 text-center text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-3 py-2 text-center text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                  Response
+                </th>
+                <th className="px-3 py-2 text-center text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wider">
                   API
                 </th>
                 <th className="px-3 py-2 text-center text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wider">
                   Free
                 </th>
                 <th className="px-3 py-2 text-center text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                  Reg.
+                  Region
                 </th>
                 <th className="px-3 py-2 text-center text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                  Verified
-                </th>
-                <th className="px-3 py-2 text-center text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                  Trusted
+                  Auth
                 </th>
               </tr>
             </thead>
@@ -147,19 +167,37 @@ export const DetailsView: React.FC = () => {
                     </span>
                   </td>
                   <td className="px-3 py-2 text-center">
+                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${getHealthStatusColor(model.health_status)}`}>
+                      {model.health_status}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2 text-center">
+                    <div className="flex items-center justify-center space-x-1">
+                      <Zap className="h-3 w-3 text-slate-400" />
+                      <span className="text-xs text-slate-600 dark:text-slate-400">
+                        {typeof model.response_time === 'number' ? `${model.response_time}ms` : model.response_time}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-3 py-2 text-center">
                     <StatusIcon value={model.api_available} />
                   </td>
                   <td className="px-3 py-2 text-center">
                     <StatusIcon value={model.free_tier} />
                   </td>
                   <td className="px-3 py-2 text-center">
-                    <StatusIcon value={model.registration_required} />
+                    <div className="flex items-center justify-center space-x-1">
+                      {model.geographic_origin_verified && model.allowed_region ? (
+                        <Shield className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                      ) : (
+                        <Globe className="h-3 w-3 text-slate-400" />
+                      )}
+                    </div>
                   </td>
                   <td className="px-3 py-2 text-center">
-                    <StatusIcon value={model.quality_verified} />
-                  </td>
-                  <td className="px-3 py-2 text-center">
-                    <StatusIcon value={model.trusted_source} />
+                    <span className="text-xs text-slate-600 dark:text-slate-400">
+                      {model.auth_method === 'backend_proxy' ? 'Proxy' : model.auth_method}
+                    </span>
                   </td>
                 </tr>
               ))}
