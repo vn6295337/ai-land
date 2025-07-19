@@ -24,7 +24,7 @@ export const DetailsView: React.FC = () => {
 
   const providers = useMemo(() => {
     if (!data?.models) return [];
-    return Array.from(new Set(data.models.map(m => m.provider))).sort();
+    return Array.from(new Set(data.models.map(m => String(m.provider)))).sort();
   }, [data?.models]);
 
   if (isLoading) {
@@ -85,8 +85,8 @@ export const DetailsView: React.FC = () => {
           onChange={(e) => setProviderFilter(e.target.value)}
         >
           <option value="all">All Providers</option>
-          {providers.map(provider => (
-            <option key={provider} value={provider}>{provider}</option>
+          {providers.map((provider, index) => (
+            <option key={`provider-${index}`} value={String(provider)}>{String(provider)}</option>
           ))}
         </select>
 

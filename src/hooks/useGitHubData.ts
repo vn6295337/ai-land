@@ -1,7 +1,12 @@
 
 import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
-const BACKEND_URL = process.env.VITE_BACKEND_URL || 'https://askme-backend-proxy.onrender.com';
+// Primary: GitHub raw file (fast, direct)
+const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/vn6295337/askme/main/scout-agent/validated_models.json';
+
+// Fallback: Your backend proxy  
+const BACKEND_URL = 'https://askme-backend-proxy.onrender.com';
 
 // Local storage keys for caching and change tracking
 const CACHE_KEY = 'llm-dashboard-cache';
@@ -85,146 +90,147 @@ interface CachedData {
   originalDataSource: string;
 }
 
+function transformGitHubData(rawData: any) {
+  const models = rawData.models || [];
+  const metadata = rawData.metadata || {};
+
+  const metrics: DashboardMetrics = {
+    totalProviders: metadata.providers_validated?.length || 0,
+    totalAvailableModels: models.filter((m: any) => m.api_available).length,
+    availableModelsChange: 0,
+    modelsExcluded: metadata.total_excluded_models || 0,
+    lastUpdate: new Date(metadata.timestamp || Date.now()),
+    nextUpdate: new Date(Date.now() + 15 * 60 * 1000),
+    dataSource: 'Scout Agent (GitHub)',
+    avgResponseTime: 0,
+    successRate: (models.filter((m: any) => m.api_available).length / models.length) * 100 || 0
+  };
+
+  const status: WorkflowStatus = {
+    status: 'success' as const,
+    lastRun: new Date(metadata.timestamp || Date.now()),
+    healthChecks: {
+      passed: metadata.providers_with_models?.length || 0,
+      total: metadata.providers_validated?.length || 0
+    }
+  };
+
+  return {
+    models,
+    metrics,
+    status,
+    isOutdated: false,
+    fallbackReason: ''
+  };
+}
+
+function transformBackendData(backendData: any) {
+  const models = backendData.validated_models || [];
+  const dashboardData = backendData.dashboard_data || {};
+
+  const metrics: DashboardMetrics = {
+    totalProviders: dashboardData.performance_metrics?.total_providers || 0,
+    totalAvailableModels: models.filter((m: any) => m.api_available).length,
+    availableModelsChange: 0,
+    modelsExcluded: 0,
+    lastUpdate: new Date(backendData.timestamp),
+    nextUpdate: new Date(Date.now() + 15 * 60 * 1000),
+    dataSource: 'Scout Agent (Backend)',
+    avgResponseTime: dashboardData.performance_metrics?.average_response_time || 0,
+    successRate: dashboardData.performance_metrics?.success_rate || 0
+  };
+
+  const status: WorkflowStatus = {
+    status: 'success' as const,
+    lastRun: new Date(backendData.timestamp),
+    healthChecks: {
+      passed: dashboardData.performance_metrics?.active_providers || 0,
+      total: dashboardData.performance_metrics?.total_providers || 0
+    }
+  };
+
+  return {
+    models,
+    metrics,
+    status,
+    isOutdated: false,
+    fallbackReason: ''
+  };
+}
+
 export const useGitHubData = () => {
   return useQuery({
     queryKey: ['llm-dashboard-data'],
     queryFn: async () => {
-      let errorMessage = '';
-      let fallbackReason = '';
+      try {
+        // Method 1: Direct GitHub fetch (fastest)
+        console.log('Fetching from GitHub raw...');
+        const githubResponse = await fetch(GITHUB_RAW_URL);
 
-        try {
-          // Fetch from backend
-          const validationResponse = await fetch(`${BACKEND_URL}/api/github/llm-data`);
+        if (githubResponse.ok) {
+          const githubData = await githubResponse.json();
 
-          if (!validationResponse.ok) {
-            throw new Error(`GitHub API returned ${validationResponse.status}: ${validationResponse.statusText}`);
-          }
+          // Store in Supabase for caching/analytics
+          await supabase
+            .from('model_validations')
+            .upsert({
+              id: 'latest',
+              data: githubData,
+              source: 'github_raw',
+              fetched_at: new Date().toISOString()
+            });
 
-          const validationData: ValidationData = await validationResponse.json();
-
-        if (!validationData.validated_models || !Array.isArray(validationData.validated_models)) {
-          throw new Error('Invalid data format from backend');
+          return transformGitHubData(githubData);
         }
-
-        const models = validationData.validated_models;
-        const dashboardData = validationData.dashboard_data;
-
-        // Calculate metrics from the scout-agent data
-        const totalProviders = dashboardData.performance_metrics.total_providers;
-        const totalAvailableModels = models.filter(m => m.api_available).length;
-        const totalModels = models.length;
-        const modelsExcluded = totalModels - totalAvailableModels;
-
-        // Calculate change from previous metrics
-        let availableModelsChange = 0;
-        try {
-          const previousMetricsStr = localStorage.getItem(PREVIOUS_METRICS_KEY);
-          if (previousMetricsStr) {
-            const previousMetrics = JSON.parse(previousMetricsStr);
-            availableModelsChange = totalAvailableModels - (previousMetrics.totalAvailableModels || 0);
-          }
-        } catch (error) {
-          console.warn('Failed to load previous metrics:', error);
-        }
-
-        const metrics: DashboardMetrics = {
-          totalProviders,
-          totalAvailableModels,
-          availableModelsChange,
-          modelsExcluded,
-          lastUpdate: new Date(validationData.timestamp),
-          nextUpdate: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes from now
-          dataSource: 'Scout Agent Validation',
-          avgResponseTime: dashboardData.performance_metrics.average_response_time || 0,
-          successRate: dashboardData.performance_metrics.success_rate || 0
-        };
-
-        // Get backend health status
-        let healthStatus: WorkflowStatus = {
-          status: 'success',
-          lastRun: new Date(validationData.timestamp),
-          healthChecks: {
-            passed: dashboardData.performance_metrics.active_providers,
-            total: dashboardData.performance_metrics.total_providers
-          }
-        };
-
-        // Try to get additional health data
-        try {
-          const healthResponse = await fetch(`${BACKEND_URL}/api/github/llm-health`);
-          if (healthResponse.ok) {
-            const healthData = await healthResponse.json();
-            if (healthData.overall_status) {
-              healthStatus.status = healthData.overall_status === 'healthy' ? 'success' : 'failure';
-            }
-          }
-        } catch (healthError) {
-          console.warn('Could not fetch health data:', healthError);
-        }
-
-        const result = {
-          models,
-          metrics,
-          status: healthStatus,
-          isOutdated: false,
-          fallbackReason: ''
-        };
-
-        // Cache successful data
-        try {
-          localStorage.setItem(CACHE_KEY, JSON.stringify({
-            models,
-            metrics,
-            status: healthStatus,
-            cachedAt: new Date().toISOString(),
-            originalDataSource: 'Scout Agent Backend'
-          }));
-          localStorage.setItem(CACHE_TIMESTAMP_KEY, new Date().toISOString());
-          localStorage.setItem(PREVIOUS_METRICS_KEY, JSON.stringify(metrics));
-        } catch (cacheError) {
-          console.warn('Failed to cache data:', cacheError);
-        }
-
-        return result;
-
       } catch (error) {
-        console.warn('Primary data fetch failed:', error);
-        errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-        // FALLBACK: Try to use cached data
-        try {
-          const cachedDataStr = localStorage.getItem(CACHE_KEY);
-          const cacheTimestamp = localStorage.getItem(CACHE_TIMESTAMP_KEY);
-
-          if (cachedDataStr && cacheTimestamp) {
-            const cachedData: CachedData = JSON.parse(cachedDataStr);
-            const cacheAge = Date.now() - new Date(cacheTimestamp).getTime();
-            const cacheAgeHours = Math.round(cacheAge / (1000 * 60 * 60));
-
-            const updatedMetrics = {
-              ...cachedData.metrics,
-              dataSource: `${cachedData.originalDataSource} (cached ${cacheAgeHours}h ago)`,
-              lastUpdate: new Date(cachedData.cachedAt),
-              nextUpdate: new Date(Date.now() + 15 * 60 * 1000)
-            };
-
-            return {
-              models: cachedData.models,
-              metrics: updatedMetrics,
-              status: {
-                ...cachedData.status,
-                status: 'failure' as const
-              },
-              isOutdated: true,
-              fallbackReason: 'Using cached data due to backend unavailability'
-            };
-          }
-        } catch (cacheError) {
-          console.warn('Failed to load cached data:', cacheError);
-        }
-
-        throw new Error(`Backend unavailable: ${errorMessage}. Please check if the scout-agent workflow has run recently.`);
+        console.warn('GitHub raw fetch failed:', error);
       }
+
+      try {
+        // Method 2: Backend proxy fallback
+        console.log('Falling back to backend proxy...');
+        const backendResponse = await fetch(`${BACKEND_URL}/api/github/llm-data`);
+
+        if (backendResponse.ok) {
+          const backendData = await backendResponse.json();
+          
+          // Store in Supabase for caching
+          await supabase
+            .from('model_validations')
+            .upsert({
+              id: 'latest',
+              data: backendData,
+              source: 'backend_proxy',
+              fetched_at: new Date().toISOString()
+            });
+
+          return transformBackendData(backendData);
+        }
+      } catch (error) {
+        console.warn('Backend proxy failed:', error);
+      }
+
+      // Method 3: Supabase cache fallback
+      console.log('Using Supabase cache...');
+      const { data: cachedData } = await supabase
+        .from('model_validations')
+        .select('*')
+        .eq('id', 'latest')
+        .maybeSingle();
+
+      if (cachedData) {
+        const result = cachedData.source === 'github_raw' 
+          ? transformGitHubData(cachedData.data)
+          : transformBackendData(cachedData.data);
+        
+        return {
+          ...result,
+          isOutdated: true,
+          fallbackReason: 'Using cached data from Supabase'
+        };
+      }
+
+      throw new Error('All data sources unavailable');
     },
     refetchInterval: 15 * 60 * 1000, // 15 minutes
     retry: 2,
