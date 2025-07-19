@@ -93,8 +93,8 @@ export const useGitHubData = () => {
       let fallbackReason = '';
 
         try {
-          // Fetch directly from GitHub
-          const validationResponse = await fetch('https://raw.githubusercontent.com/vn6295337/askme/main/scout-agent/validated_models.json');
+          // Fetch from backend
+          const validationResponse = await fetch(`${BACKEND_URL}/api/github/llm-data`);
 
           if (!validationResponse.ok) {
             throw new Error(`GitHub API returned ${validationResponse.status}: ${validationResponse.statusText}`);
