@@ -92,15 +92,15 @@ export const useGitHubData = () => {
       let errorMessage = '';
       let fallbackReason = '';
 
-      try {
-        // First, try to get scout-agent validation data
-        const validationResponse = await fetch(`${BACKEND_URL}/api/github/llm-data`);
+        try {
+          // Fetch directly from GitHub
+          const validationResponse = await fetch('https://raw.githubusercontent.com/vn6295337/askme/main/scout-agent/validated_models.json');
 
-        if (!validationResponse.ok) {
-          throw new Error(`Backend API returned ${validationResponse.status}: ${validationResponse.statusText}`);
-        }
+          if (!validationResponse.ok) {
+            throw new Error(`GitHub API returned ${validationResponse.status}: ${validationResponse.statusText}`);
+          }
 
-        const validationData: ValidationData = await validationResponse.json();
+          const validationData: ValidationData = await validationResponse.json();
 
         if (!validationData.validated_models || !Array.isArray(validationData.validated_models)) {
           throw new Error('Invalid data format from backend');
