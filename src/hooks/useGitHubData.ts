@@ -2,8 +2,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
-// Primary: GitHub raw file (fast, direct)
+// Primary: GitHub raw file (fast, direct) - force fresh with timestamp
 const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/vn6295337/askme/main/scout-agent/validated_models.json';
+
+// GitHub API for workflow run info
+const GITHUB_API_URL = 'https://api.github.com/repos/vn6295337/askme/actions/workflows';
 
 // Fallback: Your backend proxy  
 const BACKEND_URL = 'https://askme-backend-proxy.onrender.com';
@@ -90,25 +93,53 @@ interface CachedData {
   originalDataSource: string;
 }
 
-function transformGitHubData(rawData: any) {
+async function getLatestWorkflowRun() {
+  try {
+    const response = await fetch(`${GITHUB_API_URL}/scout-agent.yml/runs?per_page=1&status=completed`);
+    if (response.ok) {
+      const data = await response.json();
+      const latestRun = data.workflow_runs?.[0];
+      if (latestRun) {
+        return {
+          runNumber: latestRun.run_number,
+          updatedAt: new Date(latestRun.updated_at),
+          conclusion: latestRun.conclusion
+        };
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to fetch workflow info:', error);
+  }
+  return null;
+}
+
+function transformGitHubData(rawData: any, workflowInfo?: any) {
   const models = rawData.models || [];
   const metadata = rawData.metadata || {};
+
+  // Use workflow timestamp if available and more recent
+  const dataTimestamp = new Date(metadata.timestamp || Date.now());
+  const workflowTimestamp = workflowInfo?.updatedAt || dataTimestamp;
+  const useWorkflowTime = workflowTimestamp > dataTimestamp;
 
   const metrics: DashboardMetrics = {
     totalProviders: metadata.providers_validated?.length || 0,
     totalAvailableModels: models.filter((m: any) => m.api_available).length,
     availableModelsChange: 0,
     modelsExcluded: metadata.total_excluded_models || 0,
-    lastUpdate: new Date(metadata.timestamp || Date.now()),
+    lastUpdate: useWorkflowTime ? workflowTimestamp : dataTimestamp,
     nextUpdate: new Date(Date.now() + 15 * 60 * 1000),
-    dataSource: 'Scout Agent (GitHub)',
+    dataSource: workflowInfo?.runNumber 
+      ? `Scout Agent (GitHub) - Run #${workflowInfo.runNumber}`
+      : 'Scout Agent (GitHub)',
     avgResponseTime: 0,
     successRate: (models.filter((m: any) => m.api_available).length / models.length) * 100 || 0
   };
 
   const status: WorkflowStatus = {
-    status: 'success' as const,
-    lastRun: new Date(metadata.timestamp || Date.now()),
+    status: workflowInfo?.conclusion === 'success' ? 'success' as const : 'success' as const,
+    lastRun: useWorkflowTime ? workflowTimestamp : dataTimestamp,
+    runNumber: workflowInfo?.runNumber,
     healthChecks: {
       passed: metadata.providers_with_models?.length || 0,
       total: metadata.providers_validated?.length || 0
@@ -160,12 +191,17 @@ function transformBackendData(backendData: any) {
 
 export const useGitHubData = () => {
   return useQuery({
-    queryKey: ['llm-dashboard-data'],
+    queryKey: ['llm-dashboard-data', Date.now().toString().slice(0, -4)], // Update every 10 seconds
     queryFn: async () => {
       try {
         // Method 1: Direct GitHub fetch (fastest)
         console.log('Fetching from GitHub raw...');
-        const githubResponse = await fetch(GITHUB_RAW_URL);
+        
+        // Fetch both data and workflow info in parallel
+        const [githubResponse, workflowInfo] = await Promise.all([
+          fetch(`${GITHUB_RAW_URL}?t=${Date.now()}`), // Force fresh data
+          getLatestWorkflowRun()
+        ]);
 
         if (githubResponse.ok) {
           const githubData = await githubResponse.json();
@@ -180,7 +216,7 @@ export const useGitHubData = () => {
               fetched_at: new Date().toISOString()
             });
 
-          return transformGitHubData(githubData);
+          return transformGitHubData(githubData, workflowInfo);
         }
       } catch (error) {
         console.warn('GitHub raw fetch failed:', error);
@@ -236,9 +272,9 @@ export const useGitHubData = () => {
 
       throw new Error('All data sources unavailable');
     },
-    refetchInterval: 15 * 60 * 1000, // 15 minutes
+    refetchInterval: 2 * 60 * 1000, // 2 minutes - more frequent checks
     retry: 2,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 24 * 60 * 60 * 1000, // 24 hours,
+    staleTime: 30 * 1000, // 30 seconds - force fresh data
+    gcTime: 10 * 60 * 1000, // 10 minutes - shorter cache
   });
 };
