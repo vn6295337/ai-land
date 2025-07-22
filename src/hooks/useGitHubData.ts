@@ -223,10 +223,14 @@ export const useGitHubData = () => {
           ? transformGitHubData(cachedData.data)
           : transformBackendData(cachedData.data);
         
+        // Check if cached data is recent (within last 30 minutes)
+        const cacheAge = Date.now() - new Date(cachedData.fetched_at).getTime();
+        const isRecentCache = cacheAge < 30 * 60 * 1000; // 30 minutes
+        
         return {
           ...result,
-          isOutdated: true,
-          fallbackReason: 'Using cached data from Supabase'
+          isOutdated: !isRecentCache,
+          fallbackReason: isRecentCache ? '' : 'Using cached data from Supabase'
         };
       }
 
