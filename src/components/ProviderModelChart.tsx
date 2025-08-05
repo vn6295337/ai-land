@@ -29,18 +29,12 @@ const generateColors = (count: number) => {
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
-    const total = payload.reduce((sum: number, entry: any) => sum + entry.value, 0);
-
+    const data = payload[0]?.payload;
+    
     return (
       <div className="bg-white p-3 border rounded shadow-lg">
         <p className="font-semibold">{`Provider: ${label}`}</p>
-        <p className="text-sm text-gray-600">{`Total Models: ${total}`}</p>
-        <hr className="my-2" />
-        {payload.map((entry: any, index: number) => (
-          <p key={index} style={{ color: entry.color }}>
-            {`${entry.dataKey}: ${entry.value} (${Math.round((entry.value / total) * 100)}%)`}
-          </p>
-        ))}
+        <p className="text-lg font-bold text-blue-600">{`Total Models: ${data?.totalModels || 0}`}</p>
       </div>
     );
   }
@@ -48,18 +42,11 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export const ProviderModelChart: React.FC<Props> = ({ data }) => {
-  // Transform data for recharts
-  const chartData = data.map(item => {
-    const transformed: any = { provider: item.provider };
-    item.models.forEach(model => {
-      transformed[model.name] = model.count;
-    });
-    return transformed;
-  });
-
-  // Get all unique model names for bars
-  const allModelNames = [...new Set(data.flatMap(item => item.models.map(m => m.name)))];
-  const colors = generateColors(allModelNames.length);
+  // Simple chart data with just provider and total models
+  const chartData = data.map(item => ({
+    provider: item.provider,
+    totalModels: item.totalModels
+  }));
 
   return (
     <div className="w-full h-96">
@@ -78,17 +65,12 @@ export const ProviderModelChart: React.FC<Props> = ({ data }) => {
           />
           <YAxis label={{ value: 'Number of Models', angle: -90, position: 'insideLeft' }} />
           <Tooltip content={<CustomTooltip />} />
-          <Legend />
-
-          {allModelNames.map((modelName, index) => (
-            <Bar
-              key={modelName}
-              dataKey={modelName}
-              stackId="models"
-              fill={colors[index]}
-              name={modelName}
-            />
-          ))}
+          
+          <Bar
+            dataKey="totalModels"
+            fill="#8884d8"
+            name="Total Models"
+          />
         </BarChart>
       </ResponsiveContainer>
     </div>
