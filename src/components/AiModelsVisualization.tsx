@@ -239,9 +239,9 @@ const AiModelsVisualization = () => {
       },
       y: {
         stacked: true,
-        display: false, // Hide Y-axis as in Python version
+        display: true,
         grid: {
-          display: false
+          display: true
         }
       }
     }
