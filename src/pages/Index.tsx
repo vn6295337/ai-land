@@ -1,9 +1,9 @@
 
 import React from 'react';
-import { Dashboard } from '@/components/Dashboard';
+import AiModelsVisualization from '@/components/AiModelsVisualization';
 
 const Index = () => {
-  return <Dashboard />;
+  return <AiModelsVisualization />;
 };
 
 export default Index;
