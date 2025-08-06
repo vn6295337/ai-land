@@ -272,22 +272,19 @@ const AiModelsVisualization = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="h-screen bg-gray-50 py-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex flex-col">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+        <div className="text-center mb-4">
+          <h1 className="text-2xl font-bold text-gray-900">
             AI Models Discovery Dashboard
           </h1>
-          <p className="text-lg text-gray-600">
-            Comprehensive analysis of AI models by provider and task type
-          </p>
         </div>
 
-        <div className="space-y-6">
+        <div className="flex-1 space-y-4">
           {/* Chart Container */}
-          <div className="bg-white p-6 rounded-lg shadow-lg">
-            <div style={{ height: '500px' }}>
+          <div className="bg-white p-4 rounded-lg shadow-lg h-80">
+            <div className="h-full">
               <Bar data={chartData} options={chartOptions} />
             </div>
           </div>
