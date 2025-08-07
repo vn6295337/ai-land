@@ -277,8 +277,11 @@ const AiModelsVisualization = () => {
         {/* Header */}
         <div className="text-center mb-4">
           <h1 className="text-2xl font-bold text-gray-900">
-            AI Models Discovery Dashboard
+            Free & Open AI Models
           </h1>
+          <p className="text-lg text-gray-600 mt-2">
+            Interactive tracker of API-accessible and publicly available AI tools
+          </p>
         </div>
 
         <div className="flex-1 space-y-4">
