@@ -5,6 +5,7 @@ import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
+  LogarithmicScale,
   BarElement,
   Title,
   Tooltip,
@@ -14,6 +15,7 @@ import {
 ChartJS.register(
   CategoryScale,
   LinearScale,
+  LogarithmicScale,
   BarElement,
   Title,
   Tooltip,
@@ -238,8 +240,15 @@ const AiModelsVisualization = () => {
         }
       },
       y: {
+        type: 'logarithmic' as const,
         stacked: true,
-        display: true,
+        min: 1,
+        ticks: {
+          callback: (value: any) => {
+            const num = typeof value === 'string' ? parseFloat(value) : (value as number);
+            return Number.isFinite(num) ? num.toLocaleString() : String(value);
+          }
+        },
         grid: {
           display: true
         }
