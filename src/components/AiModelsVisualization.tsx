@@ -136,20 +136,51 @@ const AiModelsVisualization = () => {
   };
 
   const createChartData = (processedData: any) => {
-    const { grouped, sortedProviders, sortedTaskTypes, providerTotals } = processedData;
+    const { grouped, sortedProviders, sortedTaskTypes, providerTotals, taskTypeTotals } = processedData;
 
-    const datasets = sortedTaskTypes.map((taskType, index) => ({
+    const THRESHOLD = 15;
+
+    // Task types that are small (<= THRESHOLD), excluding the pre-mapped 'others'
+    const smallTaskTypes = sortedTaskTypes.filter(
+      (tt: string) => tt !== 'others' && (taskTypeTotals[tt] || 0) <= THRESHOLD
+    );
+
+    // Task types to show individually (> THRESHOLD), excluding 'others'
+    const regularTaskTypes = sortedTaskTypes.filter(
+      (tt: string) => tt !== 'others' && (taskTypeTotals[tt] || 0) > THRESHOLD
+    );
+
+    // Build datasets for regular task types
+    const datasets = regularTaskTypes.map((taskType: string, index: number) => ({
       label: taskType,
-      data: sortedProviders.map(provider => grouped[provider][taskType] || 0),
+      data: sortedProviders.map((provider: string) => grouped[provider][taskType] || 0),
       backgroundColor: COLORS[index % COLORS.length],
       borderColor: 'white',
       borderWidth: 0.5,
     }));
 
+    // Aggregate small task types into "Others" together with existing 'others'
+    const othersData = sortedProviders.map((provider: string) => {
+      const baseOthers = grouped[provider]['others'] || 0;
+      const smallSum = smallTaskTypes.reduce(
+        (sum: number, tt: string) => sum + (grouped[provider][tt] || 0),
+        0
+      );
+      return baseOthers + smallSum;
+    });
+
+    datasets.push({
+      label: 'Others',
+      data: othersData,
+      backgroundColor: COLORS[regularTaskTypes.length % COLORS.length],
+      borderColor: 'white',
+      borderWidth: 0.5,
+    });
+
     return {
       labels: sortedProviders,
       datasets,
-      providerTotals: sortedProviders.map(provider => providerTotals[provider])
+      providerTotals: sortedProviders.map((provider: string) => providerTotals[provider])
     };
   };
 
