@@ -255,7 +255,43 @@ const AiModelsVisualization = () => {
             size: 12,
             weight: 'bold' as const
           }
-        }
+        },
+        labels: {
+          generateLabels: function(chart: any) {
+            const datasets = chart.data?.datasets || [];
+            const seen = new Set<string>();
+            const labels: any[] = [];
+            datasets.forEach((ds: any, i: number) => {
+              const lbl = ds.label || '';
+              if (!seen.has(lbl)) {
+                seen.add(lbl);
+                const meta = chart.getDatasetMeta(i);
+                labels.push({
+                  text: lbl,
+                  fillStyle: ds.backgroundColor,
+                  hidden: !chart.isDatasetVisible(i) || meta.hidden,
+                  strokeStyle: ds.borderColor,
+                  lineWidth: ds.borderWidth,
+                  datasetIndex: i,
+                });
+              }
+            });
+            return labels;
+          },
+        },
+        onClick: function(e: any, legendItem: any, legend: any) {
+          const label = legendItem.text;
+          const chart = legend.chart;
+          const dsIdxs = chart.data.datasets
+            .map((ds: any, idx: number) => ({ ds, idx }))
+            .filter(({ ds }: any) => ds.label === label)
+            .map((x: any) => x.idx);
+          const anyVisible = dsIdxs.some((idx: number) => chart.isDatasetVisible(idx));
+          dsIdxs.forEach((idx: number) => {
+            chart.setDatasetVisibility(idx, !anyVisible);
+          });
+          chart.update();
+        },
       },
       tooltip: {
         mode: 'index' as const,
