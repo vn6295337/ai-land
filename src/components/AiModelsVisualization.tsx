@@ -150,31 +150,49 @@ const AiModelsVisualization = () => {
       (tt: string) => tt !== 'others' && (taskTypeTotals[tt] || 0) > THRESHOLD
     );
 
-    // Build datasets for regular task types
-    const datasets = regularTaskTypes.map((taskType: string, index: number) => ({
-      label: taskType,
-      data: sortedProviders.map((provider: string) => grouped[provider][taskType] || 0),
-      backgroundColor: COLORS[index % COLORS.length],
-      borderColor: 'white',
-      borderWidth: 0.5,
-    }));
-
-    // Aggregate small task types into "Others" together with existing 'others'
-    const othersData = sortedProviders.map((provider: string) => {
-      const baseOthers = grouped[provider]['others'] || 0;
-      const smallSum = smallTaskTypes.reduce(
-        (sum: number, tt: string) => sum + (grouped[provider][tt] || 0),
-        0
-      );
-      return baseOthers + smallSum;
+    // Stable color mapping per task type (including 'Others')
+    const allDisplayTaskTypes = [...regularTaskTypes, 'Others'];
+    const colorMap: Record<string, string> = {};
+    allDisplayTaskTypes.forEach((tt: string, index: number) => {
+      colorMap[tt] = COLORS[index % COLORS.length];
     });
 
-    datasets.push({
-      label: 'Others',
-      data: othersData,
-      backgroundColor: COLORS[regularTaskTypes.length % COLORS.length],
-      borderColor: 'white',
-      borderWidth: 0.5,
+    const datasets: any[] = [];
+
+    // For each provider, create datasets ordered by descending count for that provider
+    sortedProviders.forEach((provider: string, pIndex: number) => {
+      const segments: { label: string; value: number }[] = [];
+
+      // Add regular task types
+      regularTaskTypes.forEach((tt: string) => {
+        const v = (grouped[provider] && grouped[provider][tt]) ? grouped[provider][tt] : 0;
+        if (v > 0) segments.push({ label: tt, value: v });
+      });
+
+      // Compute 'Others' (base 'others' + all small task types)
+      const baseOthers = (grouped[provider] && grouped[provider]['others']) ? grouped[provider]['others'] : 0;
+      const smallSum = smallTaskTypes.reduce(
+        (sum: number, tt: string) => sum + ((grouped[provider] && grouped[provider][tt]) ? grouped[provider][tt] : 0),
+        0
+      );
+      const othersCount = baseOthers + smallSum;
+      if (othersCount > 0) segments.push({ label: 'Others', value: othersCount });
+
+      // Sort segments for this provider by descending count
+      segments.sort((a, b) => b.value - a.value);
+
+      // Create one dataset per segment for this provider (all zeros except at provider index)
+      segments.forEach((seg) => {
+        const dataArr = new Array(sortedProviders.length).fill(0);
+        dataArr[pIndex] = seg.value;
+        datasets.push({
+          label: seg.label,
+          data: dataArr,
+          backgroundColor: colorMap[seg.label],
+          borderColor: 'white',
+          borderWidth: 0.5,
+        });
+      });
     });
 
     return {
@@ -226,13 +244,7 @@ const AiModelsVisualization = () => {
     maintainAspectRatio: false,
     plugins: {
       title: {
-        display: true,
-        text: 'AI Models by Provider and Task Type',
-        font: {
-          size: 16,
-          weight: 'bold' as const
-        },
-        padding: 20
+        display: false
       },
       legend: {
         position: 'right' as const,
