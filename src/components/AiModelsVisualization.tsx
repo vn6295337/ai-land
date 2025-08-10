@@ -140,58 +140,41 @@ const AiModelsVisualization = () => {
 
     const THRESHOLD = 15;
 
-    // Determine which task types are small (<= THRESHOLD) vs regular (> THRESHOLD), excluding pre-mapped 'others'
+    // Task types that are small (<= THRESHOLD), excluding the pre-mapped 'others'
     const smallTaskTypes = sortedTaskTypes.filter(
       (tt: string) => tt !== 'others' && (taskTypeTotals[tt] || 0) <= THRESHOLD
     );
+
+    // Task types to show individually (> THRESHOLD), excluding 'others'
     const regularTaskTypes = sortedTaskTypes.filter(
       (tt: string) => tt !== 'others' && (taskTypeTotals[tt] || 0) > THRESHOLD
     );
 
-    // Stable color assignment per label
-    const labelOrder = [...regularTaskTypes, 'Others'];
-    const colorMap: Record<string, string> = {};
-    labelOrder.forEach((label, idx) => {
-      colorMap[label] = COLORS[idx % COLORS.length];
-    });
+    // Build datasets for regular task types
+    const datasets = regularTaskTypes.map((taskType: string, index: number) => ({
+      label: taskType,
+      data: sortedProviders.map((provider: string) => grouped[provider][taskType] || 0),
+      backgroundColor: COLORS[index % COLORS.length],
+      borderColor: 'white',
+      borderWidth: 0.5,
+    }));
 
-    const datasets: any[] = [];
-
-    // Build provider-specific stacks with per-provider descending order
-    sortedProviders.forEach((provider: string, pIndex: number) => {
-      const entries: { label: string; value: number }[] = [];
-
-      // Regular task types for this provider
-      regularTaskTypes.forEach((tt: string) => {
-        const value = grouped[provider][tt] || 0;
-        if (value > 0) entries.push({ label: tt, value });
-      });
-
-      // Aggregate small task types into Others (including pre-mapped 'others')
+    // Aggregate small task types into "Others" together with existing 'others'
+    const othersData = sortedProviders.map((provider: string) => {
       const baseOthers = grouped[provider]['others'] || 0;
       const smallSum = smallTaskTypes.reduce(
         (sum: number, tt: string) => sum + (grouped[provider][tt] || 0),
         0
       );
-      const othersValue = baseOthers + smallSum;
-      if (othersValue > 0) entries.push({ label: 'Others', value: othersValue });
+      return baseOthers + smallSum;
+    });
 
-      // Sort entries descending by count for this provider
-      entries.sort((a, b) => b.value - a.value);
-
-      // Create one dataset per entry for this provider, stacked only with this provider
-      entries.forEach((entry) => {
-        const dataArray = new Array(sortedProviders.length).fill(0);
-        dataArray[pIndex] = entry.value;
-        datasets.push({
-          label: entry.label,
-          data: dataArray,
-          backgroundColor: colorMap[entry.label],
-          borderColor: 'white',
-          borderWidth: 0.5,
-          stack: provider,
-        });
-      });
+    datasets.push({
+      label: 'Others',
+      data: othersData,
+      backgroundColor: COLORS[regularTaskTypes.length % COLORS.length],
+      borderColor: 'white',
+      borderWidth: 0.5,
     });
 
     return {
@@ -238,9 +221,6 @@ const AiModelsVisualization = () => {
     loadData();
   }, []);
 
-  // Ensure unique legend labels (deduplicate per task type)
-  const seenLegendLabels = new Set<string>();
-
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
@@ -262,15 +242,6 @@ const AiModelsVisualization = () => {
           font: {
             size: 12,
             weight: 'bold' as const
-          }
-        },
-        labels: {
-          filter: (legendItem: any) => {
-            const label = legendItem.text || '';
-            if (!label) return false;
-            if (seenLegendLabels.has(label)) return false;
-            seenLegendLabels.add(label);
-            return true;
           }
         }
       },
