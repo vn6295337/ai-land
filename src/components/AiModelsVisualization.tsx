@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Bar } from 'react-chartjs-2';
 import { createClient } from '@supabase/supabase-js';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -26,6 +27,7 @@ const AiModelsVisualization = () => {
   const [error, setError] = useState<string | null>(null);
   const [summaryStats, setSummaryStats] = useState<any>(null);
   const [detailedBreakdown, setDetailedBreakdown] = useState<any>(null);
+  const [expandedTaskTypes, setExpandedTaskTypes] = useState<Set<string>>(new Set());
 
   // Initialize Supabase client with correct environment variables
   const supabase = createClient(
@@ -99,6 +101,26 @@ const AiModelsVisualization = () => {
       grouped[provider][task_type]++;
     });
 
+    // Group models by task type for dropdown functionality
+    const modelsByTaskType: Record<string, Array<{model_name: string, provider: string}>> = {};
+    processedData.forEach(item => {
+      const { model_name, provider, task_type } = item;
+      if (!modelsByTaskType[task_type]) {
+        modelsByTaskType[task_type] = [];
+      }
+      modelsByTaskType[task_type].push({ model_name, provider });
+    });
+
+    // Sort models within each task type by provider then by model name
+    Object.keys(modelsByTaskType).forEach(taskType => {
+      modelsByTaskType[taskType].sort((a, b) => {
+        if (a.provider !== b.provider) {
+          return a.provider.localeCompare(b.provider);
+        }
+        return a.model_name.localeCompare(b.model_name);
+      });
+    });
+
     // Convert to array format and calculate totals
     const providers = Object.keys(grouped);
     const taskTypes = [...new Set(processedData.map(item => item.task_type))];
@@ -131,74 +153,26 @@ const AiModelsVisualization = () => {
         acc[p.provider] = p.total;
         return acc;
       }, {}),
-      taskTypeTotals
+      taskTypeTotals,
+      modelsByTaskType
     };
   };
 
   const createChartData = (processedData: any) => {
-    const { grouped, sortedProviders, sortedTaskTypes, providerTotals, taskTypeTotals } = processedData;
+    const { grouped, sortedProviders, sortedTaskTypes, providerTotals } = processedData;
 
-    const THRESHOLD = 15;
-
-    // Task types that are small (<= THRESHOLD), excluding the pre-mapped 'others'
-    const smallTaskTypes = sortedTaskTypes.filter(
-      (tt: string) => tt !== 'others' && (taskTypeTotals[tt] || 0) <= THRESHOLD
-    );
-
-    // Task types to show individually (> THRESHOLD), excluding 'others'
-    const regularTaskTypes = sortedTaskTypes.filter(
-      (tt: string) => tt !== 'others' && (taskTypeTotals[tt] || 0) > THRESHOLD
-    );
-
-    // Stable color mapping per task type (including 'Others')
-    const allDisplayTaskTypes = [...regularTaskTypes, 'Others'];
-    const colorMap: Record<string, string> = {};
-    allDisplayTaskTypes.forEach((tt: string, index: number) => {
-      colorMap[tt] = COLORS[index % COLORS.length];
-    });
-
-    const datasets: any[] = [];
-
-    // For each provider, create datasets ordered by descending count for that provider
-    sortedProviders.forEach((provider: string, pIndex: number) => {
-      const segments: { label: string; value: number }[] = [];
-
-      // Add regular task types
-      regularTaskTypes.forEach((tt: string) => {
-        const v = (grouped[provider] && grouped[provider][tt]) ? grouped[provider][tt] : 0;
-        if (v > 0) segments.push({ label: tt, value: v });
-      });
-
-      // Compute 'Others' (base 'others' + all small task types)
-      const baseOthers = (grouped[provider] && grouped[provider]['others']) ? grouped[provider]['others'] : 0;
-      const smallSum = smallTaskTypes.reduce(
-        (sum: number, tt: string) => sum + ((grouped[provider] && grouped[provider][tt]) ? grouped[provider][tt] : 0),
-        0
-      );
-      const othersCount = baseOthers + smallSum;
-      if (othersCount > 0) segments.push({ label: 'Others', value: othersCount });
-
-      // Sort segments for this provider by descending count
-      segments.sort((a, b) => b.value - a.value);
-
-      // Create one dataset per segment for this provider (all zeros except at provider index)
-      segments.forEach((seg) => {
-        const dataArr = new Array(sortedProviders.length).fill(0);
-        dataArr[pIndex] = seg.value;
-        datasets.push({
-          label: seg.label,
-          data: dataArr,
-          backgroundColor: colorMap[seg.label],
-          borderColor: 'white',
-          borderWidth: 0.5,
-        });
-      });
-    });
+    const datasets = sortedTaskTypes.map((taskType, index) => ({
+      label: taskType,
+      data: sortedProviders.map(provider => grouped[provider][taskType] || 0),
+      backgroundColor: COLORS[index % COLORS.length],
+      borderColor: 'white',
+      borderWidth: 0.5,
+    }));
 
     return {
       labels: sortedProviders,
       datasets,
-      providerTotals: sortedProviders.map((provider: string) => providerTotals[provider])
+      providerTotals: sortedProviders.map(provider => providerTotals[provider])
     };
   };
 
@@ -226,7 +200,8 @@ const AiModelsVisualization = () => {
           providerBreakdown: processedData.grouped,
           sortedProviders: processedData.sortedProviders,
           sortedTaskTypes: processedData.sortedTaskTypes,
-          taskTypeTotals: processedData.taskTypeTotals
+          taskTypeTotals: processedData.taskTypeTotals,
+          modelsByTaskType: processedData.modelsByTaskType
         });
 
       } catch (err: any) {
@@ -239,12 +214,28 @@ const AiModelsVisualization = () => {
     loadData();
   }, []);
 
+  const toggleTaskType = (taskType: string) => {
+    const newExpanded = new Set(expandedTaskTypes);
+    if (newExpanded.has(taskType)) {
+      newExpanded.delete(taskType);
+    } else {
+      newExpanded.add(taskType);
+    }
+    setExpandedTaskTypes(newExpanded);
+  };
+
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
       title: {
-        display: false
+        display: true,
+        text: 'AI Models by Provider and Task Type',
+        font: {
+          size: 16,
+          weight: 'bold' as const
+        },
+        padding: 20
       },
       legend: {
         position: 'right' as const,
@@ -255,43 +246,7 @@ const AiModelsVisualization = () => {
             size: 12,
             weight: 'bold' as const
           }
-        },
-        labels: {
-          generateLabels: function(chart: any) {
-            const datasets = chart.data?.datasets || [];
-            const seen = new Set<string>();
-            const labels: any[] = [];
-            datasets.forEach((ds: any, i: number) => {
-              const lbl = ds.label || '';
-              if (!seen.has(lbl)) {
-                seen.add(lbl);
-                const meta = chart.getDatasetMeta(i);
-                labels.push({
-                  text: lbl,
-                  fillStyle: ds.backgroundColor,
-                  hidden: !chart.isDatasetVisible(i) || meta.hidden,
-                  strokeStyle: ds.borderColor,
-                  lineWidth: ds.borderWidth,
-                  datasetIndex: i,
-                });
-              }
-            });
-            return labels;
-          },
-        },
-        onClick: function(e: any, legendItem: any, legend: any) {
-          const label = legendItem.text;
-          const chart = legend.chart;
-          const dsIdxs = chart.data.datasets
-            .map((ds: any, idx: number) => ({ ds, idx }))
-            .filter(({ ds }: any) => ds.label === label)
-            .map((x: any) => x.idx);
-          const anyVisible = dsIdxs.some((idx: number) => chart.isDatasetVisible(idx));
-          dsIdxs.forEach((idx: number) => {
-            chart.setDatasetVisibility(idx, !anyVisible);
-          });
-          chart.update();
-        },
+        }
       },
       tooltip: {
         mode: 'index' as const,
@@ -318,6 +273,7 @@ const AiModelsVisualization = () => {
       },
       y: {
         stacked: true,
+        display: true,
         grid: {
           display: true
         }
@@ -443,18 +399,46 @@ const AiModelsVisualization = () => {
                 </table>
               </div>
 
-              {/* Task type totals */}
+              {/* Task type totals with dropdown */}
               <div>
                 <h4 className="font-semibold mb-2">🎯 Task Type Totals:</h4>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                <div className="space-y-2">
                   {Object.entries(detailedBreakdown.taskTypeTotals)
                     .sort((a, b) => (b[1] as number) - (a[1] as number))
-                    .map(([taskType, count]: [string, number]) => (
-                      <div key={taskType} className="flex justify-between bg-gray-50 px-3 py-2 rounded">
-                        <span className="text-sm">{taskType}:</span>
-                        <span className="font-semibold text-sm">{count} models</span>
-                      </div>
-                    ))}
+                    .map(([taskType, count]: [string, number]) => {
+                      const isExpanded = expandedTaskTypes.has(taskType);
+                      const models = detailedBreakdown.modelsByTaskType[taskType] || [];
+                      
+                      return (
+                        <div key={taskType} className="bg-gray-50 rounded">
+                          <div 
+                            className="flex justify-between items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded"
+                            onClick={() => toggleTaskType(taskType)}
+                          >
+                            <div className="flex items-center gap-2">
+                              {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                              <span className="text-sm font-medium">{taskType}:</span>
+                            </div>
+                            <span className="font-semibold text-sm">{count} models</span>
+                          </div>
+                          
+                          {isExpanded && (
+                            <div className="px-6 pb-3">
+                              <div className="max-h-40 overflow-y-auto">
+                                <div className="space-y-1">
+                                  {models.map((model, index) => (
+                                    <div key={index} className="text-xs text-gray-600 flex justify-between">
+                                      <span className="truncate mr-2">{model.model_name}</span>
+                                      <span className="text-blue-600 font-medium flex-shrink-0">{model.provider}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                 </div>
               </div>
             </div>
