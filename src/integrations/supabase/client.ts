@@ -17,8 +17,9 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   },
   global: {
     headers: {
-      'cache-control': 'no-store, no-cache, must-revalidate, max-age=0',
-      pragma: 'no-cache',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
     },
     fetch: (input: RequestInfo | URL, init?: RequestInit) => {
       const url = typeof input === 'string' ? input : (input as Request).url ?? input.toString();
@@ -26,5 +27,5 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
       const nextUrl = url.includes('?') ? `${url}&${bust}` : `${url}?${bust}`;
       return fetch(nextUrl, { ...init, cache: 'no-store' });
     },
-  },
+  }
 });
