@@ -30,7 +30,7 @@ const AiModelsVisualization = () => {
   const [expandedTaskTypes, setExpandedTaskTypes] = useState<Set<string>>(new Set());
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
-  // Use shared Supabase client instance
+  // Use shared Supabase client instance (with fallbacks for Lovable deployment)
 
   // Task types mapping - same as Python version
   const OTHER_TASK_TYPES_MAPPING = {
