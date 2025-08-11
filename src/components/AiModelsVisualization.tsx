@@ -30,10 +30,10 @@ const AiModelsVisualization = () => {
   const [expandedTaskTypes, setExpandedTaskTypes] = useState<Set<string>>(new Set());
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
-  // Initialize Supabase client with correct environment variables
+  // Initialize Supabase client with environment variables
   const supabase = createClient(
-    "https://atilxlecbaqcksnrgzav.supabase.co",
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF0aWx4bGVjYmFxY2tzbnJnemF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIzOTY5MTYsImV4cCI6MjA2Nzk3MjkxNn0.sYRFyQIEzZMlgg5RtHTXDSpvxl-KrJ8E7U3_UroIJog"
+    import.meta.env.VITE_SUPABASE_URL,
+    import.meta.env.VITE_SUPABASE_ANON_KEY
   );
 
   // Task types mapping - same as Python version
