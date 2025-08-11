@@ -9,8 +9,21 @@ logging.basicConfig(level=logging.INFO)
 
 # Use your Render environment variables (match exact case)
 SUPABASE_URL = os.getenv('supabase_ai_models_discovery_url')
-SUPABASE_SERVICE_KEY = os.getenv('supabase_ai_models_discovery_service_key')
+SUPABASE_SERVICE_KEY = os.getenv('supabase_ai_models_discovery_service_key') 
 API_SECRET_KEY = os.getenv('ai_models_discovery_api_secret_key')
+
+# Log environment variable status for debugging
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+logger.info(f"Environment check - URL exists: {bool(SUPABASE_URL)}")
+logger.info(f"Environment check - Service key exists: {bool(SUPABASE_SERVICE_KEY)}")
+logger.info(f"Environment check - API secret exists: {bool(API_SECRET_KEY)}")
+if SUPABASE_URL:
+    logger.info(f"Supabase URL: {SUPABASE_URL}")
+if SUPABASE_SERVICE_KEY:
+    logger.info(f"Service key length: {len(SUPABASE_SERVICE_KEY)}")
 
 # Validate required environment variables
 if not SUPABASE_URL:
@@ -26,7 +39,12 @@ if not API_SECRET_KEY:
 app.logger.info("Environment variables validated successfully")
 
 # Initialize Supabase client with SERVICE_ROLE key (secure on Render)
-supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+try:
+    supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+    logger.info("Supabase client initialized successfully")
+except Exception as e:
+    logger.error(f"Failed to initialize Supabase client: {str(e)}")
+    raise
 
 def verify_api_key():
     """Verify API key from Authorization header"""
