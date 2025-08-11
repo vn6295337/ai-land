@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Bar } from 'react-chartjs-2';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import {
   Chart as ChartJS,
@@ -30,11 +30,7 @@ const AiModelsVisualization = () => {
   const [expandedTaskTypes, setExpandedTaskTypes] = useState<Set<string>>(new Set());
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
-  // Initialize Supabase client with environment variables
-  const supabase = createClient(
-    import.meta.env.VITE_SUPABASE_URL,
-    import.meta.env.VITE_SUPABASE_ANON_KEY
-  );
+  // Use shared Supabase client instance
 
   // Task types mapping - same as Python version
   const OTHER_TASK_TYPES_MAPPING = {
