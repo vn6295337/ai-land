@@ -38,13 +38,24 @@ if not ai_models_discovery_api_secret_key:
 
 app.logger.info("Environment variables validated successfully")
 
-# Initialize Supabase client with SERVICE_ROLE key (secure on Render)
+# Initialize Supabase client with custom secret key (secure on Render)
 try:
     supabase = create_client(supabase_ai_models_discovery_url, supabase_ai_models_discovery_service_key)
     logger.info("Supabase client initialized successfully")
+    
+    # Test the connection and permissions
+    try:
+        # Try a simple query to verify the key works
+        test_result = supabase.table('ai_models_discovery').select('count', count='exact').limit(1).execute()
+        logger.info("Database connection test successful")
+    except Exception as db_error:
+        logger.warning(f"Database test failed (key might have limited permissions): {str(db_error)}")
+        
 except Exception as e:
     logger.error(f"Failed to initialize Supabase client: {str(e)}")
-    raise
+    logger.error(f"Key length: {len(supabase_ai_models_discovery_service_key) if supabase_ai_models_discovery_service_key else 0}")
+    # Don't raise - let the app start and show better error messages
+    supabase = None
 
 def verify_api_key():
     """Verify API key from Authorization header"""
@@ -58,6 +69,13 @@ def verify_api_key():
 @app.route('/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""
+    if supabase is None:
+        return jsonify({
+            'status': 'unhealthy', 
+            'service': 'ai-models-api-gateway',
+            'error': 'Supabase client not initialized - check API key'
+        }), 503
+    
     return jsonify({'status': 'healthy', 'service': 'ai-models-api-gateway'})
 
 @app.route('/debug/env', methods=['GET'])
