@@ -236,7 +236,7 @@ const AiModelsVisualization = () => {
 
       if (mostCommonTaskType) {
         datasets.push({
-          label: `Rank ${rank + 1} (${mostCommonTaskType})`,
+          label: mostCommonTaskType,
           data,
           backgroundColor: colorMapping[mostCommonTaskType] || COLORS[rank % COLORS.length],
           borderColor: 'white',
