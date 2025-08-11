@@ -166,36 +166,71 @@ const AiModelsVisualization = () => {
     const majorTaskTypes = sortedTaskTypes.filter((taskType: string) => taskTypeTotals[taskType] > 15);
     const minorTaskTypes = sortedTaskTypes.filter((taskType: string) => taskTypeTotals[taskType] <= 15);
 
-    // Create datasets for major task types
-    const majorDatasets = majorTaskTypes.map((taskType: string, index: number) => ({
-      label: taskType,
-      data: sortedProviders.map(provider => grouped[provider][taskType] || 0),
-      backgroundColor: COLORS[index % COLORS.length],
-      borderColor: 'white',
-      borderWidth: 0.5,
-    }));
-
-    // Create "others" dataset by combining minor task types
-    const othersData = sortedProviders.map(provider => {
-      return minorTaskTypes.reduce((sum: number, taskType: string) => {
-        return sum + (grouped[provider][taskType] || 0);
-      }, 0);
+    // For each provider, calculate task type counts and sort them by descending order
+    const providerTaskTypeCounts: Record<string, Array<{taskType: string, count: number}>> = {};
+    sortedProviders.forEach((provider: string) => {
+      const taskTypeCounts = majorTaskTypes.map((taskType: string) => ({
+        taskType,
+        count: grouped[provider][taskType] || 0
+      }));
+      
+      // Add others category if it exists
+      if (minorTaskTypes.length > 0) {
+        const othersCount = minorTaskTypes.reduce((sum: number, taskType: string) => {
+          return sum + (grouped[provider][taskType] || 0);
+        }, 0);
+        taskTypeCounts.push({ taskType: 'others', count: othersCount });
+      }
+      
+      // Sort by count descending for this provider
+      providerTaskTypeCounts[provider] = taskTypeCounts.sort((a, b) => b.count - a.count);
     });
 
-    const othersDataset = {
-      label: 'others',
-      data: othersData,
-      backgroundColor: COLORS[majorTaskTypes.length % COLORS.length],
-      borderColor: 'white',
-      borderWidth: 0.5,
-    };
+    // Get all unique task types (including 'others')
+    const allTaskTypes = [...majorTaskTypes];
+    if (minorTaskTypes.length > 0) {
+      allTaskTypes.push('others');
+    }
 
-    // Combine major datasets with others dataset (only if there are minor task types)
-    const datasets = minorTaskTypes.length > 0 ? [...majorDatasets, othersDataset] : majorDatasets;
+    // Create datasets - for stacked charts, we need to maintain consistent ordering
+    // We'll use the overall task type order but respect individual provider ordering in tooltips
+    const datasets = allTaskTypes.map((taskType: string, index: number) => {
+      let data;
+      let backgroundColor;
+
+      if (taskType === 'others') {
+        // Create "others" dataset by combining minor task types
+        data = sortedProviders.map(provider => {
+          return minorTaskTypes.reduce((sum: number, minorTaskType: string) => {
+            return sum + (grouped[provider][minorTaskType] || 0);
+          }, 0);
+        });
+        backgroundColor = COLORS[majorTaskTypes.length % COLORS.length];
+      } else {
+        // Regular major task type
+        data = sortedProviders.map(provider => grouped[provider][taskType] || 0);
+        backgroundColor = COLORS[majorTaskTypes.indexOf(taskType) % COLORS.length];
+      }
+
+      return {
+        label: taskType,
+        data,
+        backgroundColor,
+        borderColor: 'white',
+        borderWidth: 0.5,
+      };
+    });
+
+    // Sort datasets by their total counts across all providers (descending)
+    const sortedDatasets = datasets.sort((a, b) => {
+      const totalA = a.data.reduce((sum: number, val: number) => sum + val, 0);
+      const totalB = b.data.reduce((sum: number, val: number) => sum + val, 0);
+      return totalB - totalA;
+    });
 
     return {
       labels: sortedProviders,
-      datasets,
+      datasets: sortedDatasets,
       providerTotals: sortedProviders.map(provider => providerTotals[provider])
     };
   };
@@ -213,10 +248,7 @@ const AiModelsVisualization = () => {
         setSummaryStats({
           totalProviders: processedData.sortedProviders.length,
           totalTaskTypes: processedData.sortedTaskTypes.length,
-          totalModels: Object.values(processedData.providerTotals).reduce((sum: number, count: number) => sum + count, 0),
-          topProviders: Object.entries(processedData.providerTotals)
-            .sort((a, b) => (b[1] as number) - (a[1] as number))
-            .slice(0, 5)
+          totalModels: Object.values(processedData.providerTotals).reduce((sum: number, count: number) => sum + count, 0)
         });
 
         // Set detailed breakdown
@@ -375,16 +407,33 @@ const AiModelsVisualization = () => {
                 </div>
               </div>
               
-              <div>
-                <h4 className="font-semibold mb-2">Top 5 Providers by Model Count:</h4>
-                <ul className="space-y-1">
-                    {summaryStats.topProviders.map(([provider, count]: [string, number]) => (
-                      <li key={provider} className="flex justify-between">
-                        <span>{provider}:</span>
-                        <span className="font-semibold">{count as number} models</span>
-                      </li>
-                    ))}
-                </ul>
+              <div className="mt-4 pt-4 border-t border-gray-200 text-xs text-gray-500">
+                <h4 className="font-semibold mb-2 text-gray-700">Legal Disclaimer & Licensing</h4>
+                <div className="space-y-2">
+                  <p>
+                    <strong>Educational Purpose:</strong> This dashboard is provided for educational and research purposes only. 
+                    Model information is aggregated from publicly available APIs and sources.
+                  </p>
+                  <p>
+                    <strong>Model Attribution:</strong> All model names, descriptions, and metadata remain property of their respective creators and providers. 
+                    This project does not claim ownership of any listed models or their intellectual property.
+                  </p>
+                  <p>
+                    <strong>Dashboard Attribution:</strong> If you use, reference, or derive from this dashboard, you must provide attribution: 
+                    "Data visualization powered by AI Models Discovery Dashboard (https://github.com/vn6295337/llm-status-beacon)"
+                  </p>
+                  <p>
+                    <strong>Accuracy Disclaimer:</strong> While we strive for accuracy, model availability, pricing, and specifications may change. 
+                    Users should verify current information directly with providers before making decisions.
+                  </p>
+                  <p>
+                    <strong>No Warranty:</strong> This information is provided "as-is" without warranties of any kind. 
+                    Use of this information is at your own risk.
+                  </p>
+                  <p className="font-medium">
+                    © 2025 AI Models Discovery Dashboard - Licensed under MIT License for educational use only
+                  </p>
+                </div>
               </div>
             </div>
           )}
