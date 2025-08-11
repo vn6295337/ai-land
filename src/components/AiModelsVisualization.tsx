@@ -166,6 +166,22 @@ const AiModelsVisualization = () => {
     const majorTaskTypes = sortedTaskTypes.filter((taskType: string) => taskTypeTotals[taskType] > 15);
     const minorTaskTypes = sortedTaskTypes.filter((taskType: string) => taskTypeTotals[taskType] <= 15);
 
+    // Get all unique task types (including 'others')
+    const allTaskTypes = [...majorTaskTypes];
+    if (minorTaskTypes.length > 0) {
+      allTaskTypes.push('others');
+    }
+
+    // Create consistent color mapping for all task types
+    const colorMapping: Record<string, string> = {};
+    allTaskTypes.forEach((taskType, index) => {
+      if (taskType === 'others') {
+        colorMapping[taskType] = COLORS[majorTaskTypes.length % COLORS.length];
+      } else {
+        colorMapping[taskType] = COLORS[majorTaskTypes.indexOf(taskType) % COLORS.length];
+      }
+    });
+
     // For each provider, calculate task type counts and sort them by descending order
     const providerTaskTypeCounts: Record<string, Array<{taskType: string, count: number}>> = {};
     sortedProviders.forEach((provider: string) => {
@@ -186,52 +202,55 @@ const AiModelsVisualization = () => {
       providerTaskTypeCounts[provider] = taskTypeCounts.sort((a, b) => b.count - a.count);
     });
 
-    // Get all unique task types (including 'others')
-    const allTaskTypes = [...majorTaskTypes];
-    if (minorTaskTypes.length > 0) {
-      allTaskTypes.push('others');
-    }
+    // Create datasets based on per-provider sorting
+    // We need to create a "virtual" stacking where each segment represents a rank position
+    const maxRanks = Math.max(...Object.values(providerTaskTypeCounts).map(counts => counts.length));
+    
+    const datasets = [];
+    for (let rank = 0; rank < maxRanks; rank++) {
+      const data: number[] = [];
+      const taskTypeForRank: string[] = [];
+      
+      // For each provider, get the task type at this rank position
+      sortedProviders.forEach((provider: string) => {
+        const providerCounts = providerTaskTypeCounts[provider];
+        if (rank < providerCounts.length) {
+          data.push(providerCounts[rank].count);
+          taskTypeForRank.push(providerCounts[rank].taskType);
+        } else {
+          data.push(0);
+          taskTypeForRank.push('');
+        }
+      });
 
-    // Create datasets - for stacked charts, we need to maintain consistent ordering
-    // We'll use the overall task type order but respect individual provider ordering in tooltips
-    const datasets = allTaskTypes.map((taskType: string, index: number) => {
-      let data;
-      let backgroundColor;
+      // Determine the most common task type at this rank for labeling
+      const taskTypeFreq: Record<string, number> = {};
+      taskTypeForRank.forEach(taskType => {
+        if (taskType) {
+          taskTypeFreq[taskType] = (taskTypeFreq[taskType] || 0) + 1;
+        }
+      });
+      const mostCommonTaskType = Object.keys(taskTypeFreq).reduce((a, b) => 
+        taskTypeFreq[a] > taskTypeFreq[b] ? a : b, Object.keys(taskTypeFreq)[0]
+      );
 
-      if (taskType === 'others') {
-        // Create "others" dataset by combining minor task types
-        data = sortedProviders.map(provider => {
-          return minorTaskTypes.reduce((sum: number, minorTaskType: string) => {
-            return sum + (grouped[provider][minorTaskType] || 0);
-          }, 0);
+      if (mostCommonTaskType) {
+        datasets.push({
+          label: `Rank ${rank + 1} (${mostCommonTaskType})`,
+          data,
+          backgroundColor: colorMapping[mostCommonTaskType] || COLORS[rank % COLORS.length],
+          borderColor: 'white',
+          borderWidth: 0.5,
+          taskTypeForRank: taskTypeForRank, // Store task type for each provider
         });
-        backgroundColor = COLORS[majorTaskTypes.length % COLORS.length];
-      } else {
-        // Regular major task type
-        data = sortedProviders.map(provider => grouped[provider][taskType] || 0);
-        backgroundColor = COLORS[majorTaskTypes.indexOf(taskType) % COLORS.length];
       }
-
-      return {
-        label: taskType,
-        data,
-        backgroundColor,
-        borderColor: 'white',
-        borderWidth: 0.5,
-      };
-    });
-
-    // Sort datasets by their total counts across all providers (descending)
-    const sortedDatasets = datasets.sort((a, b) => {
-      const totalA = a.data.reduce((sum: number, val: number) => sum + val, 0);
-      const totalB = b.data.reduce((sum: number, val: number) => sum + val, 0);
-      return totalB - totalA;
-    });
+    }
 
     return {
       labels: sortedProviders,
-      datasets: sortedDatasets,
-      providerTotals: sortedProviders.map(provider => providerTotals[provider])
+      datasets,
+      providerTotals: sortedProviders.map(provider => providerTotals[provider]),
+      providerTaskTypeCounts // Store for tooltip customization
     };
   };
 
@@ -311,10 +330,24 @@ const AiModelsVisualization = () => {
         mode: 'index' as const,
         intersect: false,
         callbacks: {
-          afterTitle: function(tooltipItems) {
+          afterTitle: function(tooltipItems: any) {
             const providerIndex = tooltipItems[0].dataIndex;
             const total = chartData?.providerTotals[providerIndex] || 0;
             return `Total: ${total} models`;
+          },
+          label: function(context: any) {
+            const datasetIndex = context.datasetIndex;
+            const providerIndex = context.dataIndex;
+            const dataset = chartData?.datasets[datasetIndex];
+            const taskTypeForRank = dataset?.taskTypeForRank;
+            
+            if (taskTypeForRank && taskTypeForRank[providerIndex]) {
+              const actualTaskType = taskTypeForRank[providerIndex];
+              const value = context.parsed.y;
+              return `${actualTaskType}: ${value} models`;
+            }
+            
+            return `${context.dataset.label}: ${context.parsed.y} models`;
           }
         }
       }
@@ -407,34 +440,6 @@ const AiModelsVisualization = () => {
                 </div>
               </div>
               
-              <div className="mt-4 pt-4 border-t border-gray-200 text-xs text-gray-500">
-                <h4 className="font-semibold mb-2 text-gray-700">Legal Disclaimer & Licensing</h4>
-                <div className="space-y-2">
-                  <p>
-                    <strong>Educational Purpose:</strong> This dashboard is provided for educational and research purposes only. 
-                    Model information is aggregated from publicly available APIs and sources.
-                  </p>
-                  <p>
-                    <strong>Model Attribution:</strong> All model names, descriptions, and metadata remain property of their respective creators and providers. 
-                    This project does not claim ownership of any listed models or their intellectual property.
-                  </p>
-                  <p>
-                    <strong>Dashboard Attribution:</strong> If you use, reference, or derive from this dashboard, you must provide attribution: 
-                    "Data visualization powered by AI Models Discovery Dashboard (https://github.com/vn6295337/llm-status-beacon)"
-                  </p>
-                  <p>
-                    <strong>Accuracy Disclaimer:</strong> While we strive for accuracy, model availability, pricing, and specifications may change. 
-                    Users should verify current information directly with providers before making decisions.
-                  </p>
-                  <p>
-                    <strong>No Warranty:</strong> This information is provided "as-is" without warranties of any kind. 
-                    Use of this information is at your own risk.
-                  </p>
-                  <p className="font-medium">
-                    © 2025 AI Models Discovery Dashboard - Licensed under MIT License for educational use only
-                  </p>
-                </div>
-              </div>
             </div>
           )}
 
@@ -522,6 +527,42 @@ const AiModelsVisualization = () => {
               </div>
             </div>
           )}
+        </div>
+
+        {/* Legal Disclaimer & Licensing - Footer */}
+        <div className="mt-8 pt-6 border-t border-gray-300 bg-gray-50 rounded-lg p-4">
+          <div className="text-xs text-gray-500">
+            <h4 className="font-semibold mb-3 text-gray-700">Legal Disclaimer & Licensing</h4>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <p>
+                  <strong>Educational Purpose:</strong> This dashboard is provided for educational and research purposes only. 
+                  Model information is aggregated from publicly available APIs and sources.
+                </p>
+                <p>
+                  <strong>Model Attribution:</strong> All model names, descriptions, and metadata remain property of their respective creators and providers. 
+                  This project does not claim ownership of any listed models or their intellectual property.
+                </p>
+                <p>
+                  <strong>Dashboard Attribution:</strong> If you use, reference, or derive from this dashboard, you must provide attribution: 
+                  "Data visualization powered by AI Models Discovery Dashboard (https://github.com/vn6295337/llm-status-beacon)"
+                </p>
+              </div>
+              <div className="space-y-2">
+                <p>
+                  <strong>Accuracy Disclaimer:</strong> While we strive for accuracy, model availability, pricing, and specifications may change. 
+                  Users should verify current information directly with providers before making decisions.
+                </p>
+                <p>
+                  <strong>No Warranty:</strong> This information is provided "as-is" without warranties of any kind. 
+                  Use of this information is at your own risk.
+                </p>
+                <p className="font-medium">
+                  © 2025 AI Models Discovery Dashboard - Licensed under MIT License for educational use only
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
