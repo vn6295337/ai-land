@@ -13,5 +13,22 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
-  }
+  },
+  global: {
+    headers: {
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache',
+    },
+    fetch: (input: any, init?: RequestInit) => {
+      return fetch(input, {
+        ...init,
+        cache: 'no-store',
+        headers: {
+          ...(init?.headers || {}),
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+        },
+      });
+    },
+  },
 });
