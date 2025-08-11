@@ -28,6 +28,7 @@ const AiModelsVisualization = () => {
   const [summaryStats, setSummaryStats] = useState<any>(null);
   const [detailedBreakdown, setDetailedBreakdown] = useState<any>(null);
   const [expandedTaskTypes, setExpandedTaskTypes] = useState<Set<string>>(new Set());
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
   // Initialize Supabase client with correct environment variables
   const supabase = createClient(
@@ -204,6 +205,9 @@ const AiModelsVisualization = () => {
           modelsByTaskType: processedData.modelsByTaskType
         });
 
+        // Update last refresh timestamp
+        setLastRefresh(new Date());
+
       } catch (err: any) {
         setError(err.message);
       } finally {
@@ -212,6 +216,12 @@ const AiModelsVisualization = () => {
     };
 
     loadData();
+
+    // Set up auto-refresh every 5 minutes
+    const interval = setInterval(loadData, 5 * 60 * 1000);
+
+    // Cleanup interval on unmount
+    return () => clearInterval(interval);
   }, []);
 
   const toggleTaskType = (taskType: string) => {
@@ -315,6 +325,9 @@ const AiModelsVisualization = () => {
           </h1>
           <p className="text-lg text-gray-600 mt-2">
             Interactive tracker of API-accessible and publicly available AI tools
+          </p>
+          <p className="text-sm text-gray-500 mt-1">
+            Last updated: {lastRefresh.toLocaleTimeString()} • Auto-refreshes every 5 minutes
           </p>
         </div>
 
