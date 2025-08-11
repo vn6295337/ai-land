@@ -56,7 +56,7 @@ const AiModelsVisualization = () => {
       let offset = 0;
 
       while (true) {
-        const response = await supabase
+        const response = await (supabase as any)
           .from('ai_models_discovery')
           .select('*')
           .order('discovery_timestamp', { ascending: false })
