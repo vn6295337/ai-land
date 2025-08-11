@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Bar } from 'react-chartjs-2';
 import { supabase } from '@/integrations/supabase/client';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, Sun, Moon } from 'lucide-react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -29,6 +29,7 @@ const AiModelsVisualization = () => {
   const [detailedBreakdown, setDetailedBreakdown] = useState<any>(null);
   const [expandedTaskTypes, setExpandedTaskTypes] = useState<Set<string>>(new Set());
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [darkMode, setDarkMode] = useState(false);
 
   // Use shared Supabase client instance (with fallbacks for Lovable deployment)
 
@@ -312,13 +313,31 @@ const AiModelsVisualization = () => {
         display: false
       },
       legend: {
-        position: 'right' as const,
+        display: true,
+        position: 'chartArea' as const,
+        align: 'end' as const,
+        labels: {
+          usePointStyle: true,
+          pointStyle: 'rect',
+          pointStyleWidth: 12,
+          pointStyleHeight: 8,
+          padding: 8,
+          font: {
+            size: 10
+          },
+          boxWidth: 12,
+          boxHeight: 8
+        },
         title: {
           display: true,
           text: 'Task Types',
+          position: 'top' as const,
           font: {
-            size: 12,
+            size: 11,
             weight: 'bold' as const
+          },
+          padding: {
+            bottom: 5
           }
         }
       },
@@ -394,18 +413,40 @@ const AiModelsVisualization = () => {
   }
 
   return (
-    <div className="h-screen bg-gray-50 py-4">
+    <div className={`h-screen py-4 transition-colors duration-200 ${
+      darkMode ? 'bg-gray-900' : 'bg-gray-50'
+    }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex flex-col">
-        {/* Header */}
-        <div className="text-center mb-4">
-          <h1 className="text-2xl font-bold text-gray-900">
+        {/* Header with Dark Mode Toggle */}
+        <div className="text-center mb-4 relative">
+          {/* Dark Mode Toggle */}
+          <div className="absolute right-0 top-0">
+            <button
+              onClick={() => setDarkMode(!darkMode)}
+              className={`p-2 rounded-lg transition-colors duration-200 ${
+                darkMode 
+                  ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' 
+                  : 'bg-white text-gray-600 hover:bg-gray-100 shadow-md'
+              }`}
+            >
+              {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+          </div>
+          
+          <h1 className={`text-2xl font-bold transition-colors duration-200 ${
+            darkMode ? 'text-white' : 'text-gray-900'
+          }`}>
             Free & Open AI Models
           </h1>
-          <p className="text-lg text-gray-600 mt-2">
-            Interactive tracker of API-accessible and publicly available AI tools
+          <p className={`text-lg mt-2 transition-colors duration-200 ${
+            darkMode ? 'text-gray-300' : 'text-gray-600'
+          }`}>
+            Interactive tracker of API-accessible and publicly available LLMs/SLMs
           </p>
-          <p className="text-sm text-gray-500 mt-1">
-            Last updated: {lastRefresh.toLocaleTimeString()} • Auto-refreshes every 5 minutes
+          <p className={`text-sm mt-1 transition-colors duration-200 ${
+            darkMode ? 'text-gray-400' : 'text-gray-500'
+          }`}>
+            Last updated: {lastRefresh.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })} UTC • Auto-refreshes every 5 minutes
           </p>
         </div>
 
