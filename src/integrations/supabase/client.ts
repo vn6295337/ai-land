@@ -13,5 +13,25 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
-  }
+  },
+  global: {
+    headers: {
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+    },
+    // Ensure fresh data in production by bypassing caches and adding a cache-busting param
+    fetch: (input: any, init: any = {}) => {
+      const req = new Request(input, init);
+      const url = new URL(req.url);
+      if ((req.method || 'GET').toUpperCase() === 'GET') {
+        url.searchParams.set('_ts', Date.now().toString());
+      }
+      const headers = new Headers(req.headers);
+      headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      headers.set('Pragma', 'no-cache');
+      headers.set('Expires', '0');
+      return fetch(url.toString(), { ...init, cache: 'no-store', headers });
+    },
+  },
 });
