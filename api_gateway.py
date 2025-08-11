@@ -27,14 +27,14 @@ if SUPABASE_SERVICE_KEY:
 
 # Validate required environment variables
 if not SUPABASE_URL:
-    app.logger.error("Missing SUPABASE_AI_MODELS_DISCOVERY_URL environment variable")
-    raise ValueError("SUPABASE_AI_MODELS_DISCOVERY_URL environment variable required")
+    app.logger.error("Missing supabase_ai_models_discovery_url environment variable")
+    raise ValueError("supabase_ai_models_discovery_url environment variable required")
 if not SUPABASE_SERVICE_KEY:
     app.logger.error("Missing supabase_ai_models_discovery_service_key environment variable") 
     raise ValueError("supabase_ai_models_discovery_service_key environment variable required")
 if not API_SECRET_KEY:
-    app.logger.error("Missing AI_MODELS_DISCOVERY_API_SECRET_KEY environment variable")
-    raise ValueError("AI_MODELS_DISCOVERY_API_SECRET_KEY environment variable required")
+    app.logger.error("Missing ai_models_discovery_api_secret_key environment variable")
+    raise ValueError("ai_models_discovery_api_secret_key environment variable required")
 
 app.logger.info("Environment variables validated successfully")
 
