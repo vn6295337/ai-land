@@ -24,6 +24,8 @@ if supabase_ai_models_discovery_url:
     logger.info(f"Supabase URL: {supabase_ai_models_discovery_url}")
 if supabase_ai_models_discovery_service_key:
     logger.info(f"Service key length: {len(supabase_ai_models_discovery_service_key)}")
+    logger.info(f"Service key starts with: {supabase_ai_models_discovery_service_key[:10]}...")
+    logger.info(f"Service key ends with: ...{supabase_ai_models_discovery_service_key[-10:]}")
 
 # Validate required environment variables
 if not supabase_ai_models_discovery_url:
@@ -40,7 +42,15 @@ app.logger.info("Environment variables validated successfully")
 
 # Initialize Supabase client with custom secret key (secure on Render)
 try:
-    supabase = create_client(supabase_ai_models_discovery_url, supabase_ai_models_discovery_service_key)
+    # Strip any potential whitespace from the key
+    clean_key = supabase_ai_models_discovery_service_key.strip() if supabase_ai_models_discovery_service_key else ""
+    clean_url = supabase_ai_models_discovery_url.strip() if supabase_ai_models_discovery_url else ""
+    
+    logger.info(f"Attempting to create Supabase client with cleaned credentials")
+    logger.info(f"Cleaned URL: {clean_url}")
+    logger.info(f"Cleaned key length: {len(clean_key)}")
+    
+    supabase = create_client(clean_url, clean_key)
     logger.info("Supabase client initialized successfully")
     
     # Test the connection and permissions
@@ -53,7 +63,7 @@ try:
         
 except Exception as e:
     logger.error(f"Failed to initialize Supabase client: {str(e)}")
-    logger.error(f"Key length: {len(supabase_ai_models_discovery_service_key) if supabase_ai_models_discovery_service_key else 0}")
+    logger.error(f"Raw key length: {len(supabase_ai_models_discovery_service_key) if supabase_ai_models_discovery_service_key else 0}")
     # Don't raise - let the app start and show better error messages
     supabase = None
 
