@@ -160,15 +160,38 @@ const AiModelsVisualization = () => {
   };
 
   const createChartData = (processedData: any) => {
-    const { grouped, sortedProviders, sortedTaskTypes, providerTotals } = processedData;
+    const { grouped, sortedProviders, sortedTaskTypes, providerTotals, taskTypeTotals } = processedData;
 
-    const datasets = sortedTaskTypes.map((taskType, index) => ({
+    // Separate task types into major (>15 models) and minor (<=15 models)
+    const majorTaskTypes = sortedTaskTypes.filter((taskType: string) => taskTypeTotals[taskType] > 15);
+    const minorTaskTypes = sortedTaskTypes.filter((taskType: string) => taskTypeTotals[taskType] <= 15);
+
+    // Create datasets for major task types
+    const majorDatasets = majorTaskTypes.map((taskType: string, index: number) => ({
       label: taskType,
       data: sortedProviders.map(provider => grouped[provider][taskType] || 0),
       backgroundColor: COLORS[index % COLORS.length],
       borderColor: 'white',
       borderWidth: 0.5,
     }));
+
+    // Create "others" dataset by combining minor task types
+    const othersData = sortedProviders.map(provider => {
+      return minorTaskTypes.reduce((sum: number, taskType: string) => {
+        return sum + (grouped[provider][taskType] || 0);
+      }, 0);
+    });
+
+    const othersDataset = {
+      label: 'others',
+      data: othersData,
+      backgroundColor: COLORS[majorTaskTypes.length % COLORS.length],
+      borderColor: 'white',
+      borderWidth: 0.5,
+    };
+
+    // Combine major datasets with others dataset (only if there are minor task types)
+    const datasets = minorTaskTypes.length > 0 ? [...majorDatasets, othersDataset] : majorDatasets;
 
     return {
       labels: sortedProviders,
@@ -239,13 +262,7 @@ const AiModelsVisualization = () => {
     maintainAspectRatio: false,
     plugins: {
       title: {
-        display: true,
-        text: 'AI Models by Provider and Task Type',
-        font: {
-          size: 16,
-          weight: 'bold' as const
-        },
-        padding: 20
+        display: false
       },
       legend: {
         position: 'right' as const,
