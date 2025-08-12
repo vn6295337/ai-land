@@ -29,6 +29,7 @@ const AiModelsVisualization = () => {
   const [detailedBreakdown, setDetailedBreakdown] = useState<any>(null);
   const [expandedTaskTypes, setExpandedTaskTypes] = useState<Set<string>>(new Set());
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
   // Use shared Supabase client instance (with fallbacks for Lovable deployment)
 
@@ -242,11 +243,16 @@ const AiModelsVisualization = () => {
       }
     }
 
+    // Calculate dynamic y-axis maximum
+    const maxProviderTotal = Math.max(...sortedProviders.map(provider => providerTotals[provider]));
+    const yAxisMax = Math.ceil(maxProviderTotal / 10) * 10; // Round up to nearest 10
+
     return {
       labels: sortedProviders,
       datasets,
       providerTotals: sortedProviders.map(provider => providerTotals[provider]),
-      providerTaskTypeCounts // Store for tooltip customization
+      providerTaskTypeCounts, // Store for tooltip customization
+      yAxisMax // Dynamic y-axis maximum
     };
   };
 
@@ -325,7 +331,8 @@ const AiModelsVisualization = () => {
             size: 10
           },
           boxWidth: 12,
-          boxHeight: 8
+          boxHeight: 8,
+          color: isDarkMode ? '#E5E7EB' : '#374151'
         },
         title: {
           display: true,
@@ -336,12 +343,18 @@ const AiModelsVisualization = () => {
           },
           padding: {
             bottom: 5
-          }
+          },
+          color: isDarkMode ? '#E5E7EB' : '#374151'
         }
       },
       tooltip: {
         mode: 'index' as const,
         intersect: false,
+        backgroundColor: isDarkMode ? '#374151' : '#FFFFFF',
+        titleColor: isDarkMode ? '#F9FAFB' : '#111827',
+        bodyColor: isDarkMode ? '#E5E7EB' : '#374151',
+        borderColor: isDarkMode ? '#4B5563' : '#D1D5DB',
+        borderWidth: 1,
         callbacks: {
           afterTitle: function(tooltipItems: any) {
             const providerIndex = tooltipItems[0].dataIndex;
@@ -373,14 +386,23 @@ const AiModelsVisualization = () => {
           minRotation: 45,
           font: {
             size: 10
-          }
+          },
+          color: isDarkMode ? '#E5E7EB' : '#374151'
+        },
+        grid: {
+          color: isDarkMode ? '#374151' : '#E5E7EB'
         }
       },
       y: {
         stacked: true,
         display: true,
+        max: chartData?.yAxisMax,
+        ticks: {
+          color: isDarkMode ? '#E5E7EB' : '#374151'
+        },
         grid: {
-          display: true
+          display: true,
+          color: isDarkMode ? '#374151' : '#E5E7EB'
         }
       }
     }
@@ -388,15 +410,21 @@ const AiModelsVisualization = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-lg">Loading AI models data...</div>
+      <div className={`min-h-screen flex items-center justify-center ${
+        isDarkMode ? 'bg-gray-900' : 'bg-gray-50'
+      }`}>
+        <div className={`text-lg ${
+          isDarkMode ? 'text-gray-100' : 'text-gray-900'
+        }`}>Loading AI models data...</div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className={`min-h-screen flex items-center justify-center ${
+        isDarkMode ? 'bg-gray-900' : 'bg-gray-50'
+      }`}>
         <div className="text-red-600">Error: {error}</div>
       </div>
     );
@@ -404,52 +432,95 @@ const AiModelsVisualization = () => {
 
   if (!chartData) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-gray-600">No data available</div>
+      <div className={`min-h-screen flex items-center justify-center ${
+        isDarkMode ? 'bg-gray-900' : 'bg-gray-50'
+      }`}>
+        <div className={`text-gray-600 ${
+          isDarkMode ? 'text-gray-400' : 'text-gray-600'
+        }`}>No data available</div>
       </div>
     );
   }
 
   return (
-    <div className="h-screen bg-gray-50 py-4">
+    <div className={`h-screen py-4 ${
+      isDarkMode ? 'bg-gray-900' : 'bg-gray-50'
+    }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex flex-col">
-        {/* Header */}
-        <div className="text-center mb-4">
-          <h1 className="text-2xl font-bold text-gray-900">
+        {/* Header with Dark Mode Toggle */}
+        <div className="text-center mb-4 relative">
+          <button
+            onClick={() => setIsDarkMode(!isDarkMode)}
+            className={`absolute top-0 right-0 p-2 rounded-lg transition-colors ${
+              isDarkMode 
+                ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' 
+                : 'bg-white text-gray-600 hover:bg-gray-100'
+            }`}
+            title="Toggle dark mode"
+          >
+            {isDarkMode ? '☀️' : '🌙'}
+          </button>
+          
+          <h1 className={`text-2xl font-bold ${
+            isDarkMode ? 'text-gray-100' : 'text-gray-900'
+          }`}>
             Free & Open AI Models
           </h1>
-          <p className="text-lg text-gray-600 mt-2">
+          <p className={`text-lg mt-2 ${
+            isDarkMode ? 'text-gray-300' : 'text-gray-600'
+          }`}>
             Interactive tracker of API-accessible and publicly available LLMs/SLMs
-          </p>
-          <p className="text-sm text-gray-500 mt-1">
-            Last updated: {lastRefresh.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })} UTC • Auto-refreshes every 5 minutes
           </p>
         </div>
 
         <div className="flex-1 space-y-4">
           {/* Chart Container */}
-          <div className="bg-white p-4 rounded-lg shadow-lg h-80">
+          <div className={`p-4 rounded-lg shadow-lg h-80 ${
+            isDarkMode ? 'bg-gray-800' : 'bg-white'
+          }`}>
             <div className="h-full">
               <Bar data={chartData} options={chartOptions} />
             </div>
+            {/* Last Updated - moved below chart */}
+            <p className={`text-xs mt-2 text-center ${
+              isDarkMode ? 'text-gray-400' : 'text-gray-500'
+            }`}>
+              Last updated: {lastRefresh.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })} UTC • Auto-refreshes every 5 minutes
+            </p>
           </div>
 
           {/* Summary Statistics */}
           {summaryStats && (
-            <div className="bg-white p-6 rounded-lg shadow-lg">
-              <h3 className="text-lg font-bold mb-4">📊 Summary Statistics</h3>
+            <div className={`p-6 rounded-lg shadow-lg ${
+              isDarkMode ? 'bg-gray-800' : 'bg-white'
+            }`}>
+              <h3 className={`text-lg font-bold mb-4 ${
+                isDarkMode ? 'text-gray-100' : 'text-gray-900'
+              }`}>📊 Summary Statistics</h3>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">{summaryStats.totalProviders}</div>
-                  <div className="text-sm text-gray-600">Total Providers</div>
+                  <div className={`text-2xl font-bold ${
+                    isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                  }`}>{summaryStats.totalProviders}</div>
+                  <div className={`text-sm ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                  }`}>Total Providers</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">{summaryStats.totalTaskTypes}</div>
-                  <div className="text-sm text-gray-600">Task Types</div>
+                  <div className={`text-2xl font-bold ${
+                    isDarkMode ? 'text-green-400' : 'text-green-600'
+                  }`}>{summaryStats.totalTaskTypes}</div>
+                  <div className={`text-sm ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                  }`}>Task Types</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-purple-600">{summaryStats.totalModels}</div>
-                  <div className="text-sm text-gray-600">Total Models</div>
+                  <div className={`text-2xl font-bold ${
+                    isDarkMode ? 'text-purple-400' : 'text-purple-600'
+                  }`}>{summaryStats.totalModels}</div>
+                  <div className={`text-sm ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                  }`}>Total Models</div>
                 </div>
               </div>
               
@@ -458,21 +529,31 @@ const AiModelsVisualization = () => {
 
           {/* Detailed Breakdown */}
           {detailedBreakdown && (
-            <div className="bg-white p-6 rounded-lg shadow-lg">
-              <h3 className="text-lg font-bold mb-4">📋 Detailed Breakdown by Provider and Task Type</h3>
+            <div className={`p-6 rounded-lg shadow-lg ${
+              isDarkMode ? 'bg-gray-800' : 'bg-white'
+            }`}>
+              <h3 className={`text-lg font-bold mb-4 ${
+                isDarkMode ? 'text-gray-100' : 'text-gray-900'
+              }`}>📋 Detailed Breakdown by Provider and Task Type</h3>
               
               {/* Provider breakdown table */}
               <div className="overflow-x-auto mb-6">
                 <table className="min-w-full table-auto border-collapse">
                   <thead>
-                    <tr className="bg-gray-100">
-                      <th className="border px-4 py-2 text-left">Provider</th>
+                    <tr className={isDarkMode ? 'bg-gray-700' : 'bg-gray-100'}>
+                      <th className={`border px-4 py-2 text-left ${
+                        isDarkMode ? 'border-gray-600 text-gray-200' : 'border-gray-300 text-gray-900'
+                      }`}>Provider</th>
                        {detailedBreakdown.sortedTaskTypes.map((taskType: string) => (
-                         <th key={taskType} className="border px-2 py-2 text-center text-xs">
+                         <th key={taskType} className={`border px-2 py-2 text-center text-xs ${
+                           isDarkMode ? 'border-gray-600 text-gray-200' : 'border-gray-300 text-gray-900'
+                         }`}>
                            {taskType}
                          </th>
                        ))}
-                      <th className="border px-4 py-2 text-center font-bold">Total</th>
+                      <th className={`border px-4 py-2 text-center font-bold ${
+                        isDarkMode ? 'border-gray-600 text-gray-200' : 'border-gray-300 text-gray-900'
+                      }`}>Total</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -481,14 +562,20 @@ const AiModelsVisualization = () => {
                       const total = Object.values(providerData).reduce((sum: number, count: number) => sum + count, 0);
                       
                       return (
-                        <tr key={provider} className="hover:bg-gray-50">
-                          <td className="border px-4 py-2 font-semibold">{provider}</td>
+                        <tr key={provider} className={isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50'}>
+                          <td className={`border px-4 py-2 font-semibold ${
+                            isDarkMode ? 'border-gray-600 text-gray-200' : 'border-gray-300 text-gray-900'
+                          }`}>{provider}</td>
                          {detailedBreakdown.sortedTaskTypes.map((taskType: string) => (
-                           <td key={taskType} className="border px-2 py-2 text-center">
+                           <td key={taskType} className={`border px-2 py-2 text-center ${
+                             isDarkMode ? 'border-gray-600 text-gray-300' : 'border-gray-300 text-gray-700'
+                           }`}>
                              {providerData[taskType] || 0}
                            </td>
                          ))}
-                          <td className="border px-4 py-2 text-center font-bold">{total as number}</td>
+                          <td className={`border px-4 py-2 text-center font-bold ${
+                            isDarkMode ? 'border-gray-600 text-gray-200' : 'border-gray-300 text-gray-900'
+                          }`}>{total as number}</td>
                         </tr>
                       );
                     })}
@@ -498,7 +585,9 @@ const AiModelsVisualization = () => {
 
               {/* Task type totals with dropdown */}
               <div>
-                <h4 className="font-semibold mb-2">🎯 Task Type Totals:</h4>
+                <h4 className={`font-semibold mb-2 ${
+                  isDarkMode ? 'text-gray-200' : 'text-gray-900'
+                }`}>🎯 Task Type Totals:</h4>
                 <div className="space-y-2">
                   {Object.entries(detailedBreakdown.taskTypeTotals)
                     .sort((a, b) => (b[1] as number) - (a[1] as number))
@@ -507,28 +596,65 @@ const AiModelsVisualization = () => {
                       const models = detailedBreakdown.modelsByTaskType[taskType] || [];
                       
                       return (
-                        <div key={taskType} className="bg-gray-50 rounded">
+                        <div key={taskType} className={`rounded ${
+                          isDarkMode ? 'bg-gray-700' : 'bg-gray-50'
+                        }`}>
                           <div 
-                            className="flex justify-between items-center px-3 py-2 cursor-pointer hover:bg-gray-100 rounded"
+                            className={`flex justify-between items-center px-3 py-2 cursor-pointer rounded ${
+                              isDarkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-100'
+                            }`}
                             onClick={() => toggleTaskType(taskType)}
                           >
                             <div className="flex items-center gap-2">
-                              {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                              <span className="text-sm font-medium">{taskType}:</span>
+                              <span className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>
+                                {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                              </span>
+                              <span className={`text-sm font-medium ${
+                                isDarkMode ? 'text-gray-200' : 'text-gray-900'
+                              }`}>{taskType}:</span>
                             </div>
-                            <span className="font-semibold text-sm">{count} models</span>
+                            <span className={`font-semibold text-sm ${
+                              isDarkMode ? 'text-gray-200' : 'text-gray-900'
+                            }`}>{count} models</span>
                           </div>
                           
                           {isExpanded && (
                             <div className="px-6 pb-3">
                               <div className="max-h-40 overflow-y-auto">
+                                <div className={`grid grid-cols-12 gap-2 text-xs font-medium mb-2 px-1 ${
+                                  isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                                }`}>
+                                  <div className="col-span-5">Model Name</div>
+                                  <div className="col-span-2">Provider</div>
+                                  <div className="col-span-2">Status</div>
+                                  <div className="col-span-3">Originator</div>
+                                </div>
                                 <div className="space-y-1">
-                                  {models.map((model, index) => (
-                                    <div key={index} className="text-xs text-gray-600 flex justify-between">
-                                      <span className="truncate mr-2">{model.model_name}</span>
-                                      <span className="text-blue-600 font-medium flex-shrink-0">{model.provider}</span>
-                                    </div>
-                                  ))}
+                                  {models.map((model, index) => {
+                                    const originator = model.model_name?.includes('/') 
+                                      ? model.model_name.split('/')[0] 
+                                      : model.provider || 'unknown';
+                                    
+                                    return (
+                                      <div key={index} className={`text-xs grid grid-cols-12 gap-2 py-1 ${
+                                        isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                                      }`}>
+                                        <span className="col-span-5 truncate">{model.model_name}</span>
+                                        <span className={`col-span-2 font-medium ${
+                                          isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                                        }`}>{model.provider}</span>
+                                        <div className="col-span-2 flex items-center gap-1">
+                                          <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                                          <span className={`font-medium ${
+                                            isDarkMode ? 'text-green-400' : 'text-green-700'
+                                          }`}>{model.status || 'stable'}</span>
+                                        </div>
+                                        <span className={`col-span-3 font-medium truncate ${
+                                          isDarkMode ? 'text-purple-400' : 'text-purple-600'
+                                        }`}>{originator}</span>
+                                      </div>
+                                    );
+                                  })}
                                 </div>
                               </div>
                             </div>
@@ -542,10 +668,30 @@ const AiModelsVisualization = () => {
           )}
         </div>
 
+        {/* Status Notice */}
+        <div className={`mt-6 p-3 rounded-lg ${
+          isDarkMode ? 'bg-blue-900 border-blue-700' : 'bg-blue-50 border-blue-200'
+        } border`}>
+          <p className={`text-sm ${
+            isDarkMode ? 'text-blue-200' : 'text-blue-800'
+          }`}>
+            ℹ️ <strong>Filter Applied:</strong> Only stable models from North American and European companies are displayed. 
+            Beta, deprecated, and active status models are filtered out to ensure production-ready options.
+          </p>
+        </div>
+
         {/* Legal Disclaimer & Licensing - Footer */}
-        <div className="mt-8 pt-6 border-t border-gray-300 bg-gray-50 rounded-lg p-4">
-          <div className="text-xs text-gray-500">
-            <h4 className="font-semibold mb-3 text-gray-700">Legal Disclaimer & Licensing</h4>
+        <div className={`mt-8 pt-6 border-t rounded-lg p-4 ${
+          isDarkMode 
+            ? 'border-gray-700 bg-gray-800' 
+            : 'border-gray-300 bg-gray-50'
+        }`}>
+          <div className={`text-xs ${
+            isDarkMode ? 'text-gray-400' : 'text-gray-500'
+          }`}>
+            <h4 className={`font-semibold mb-3 ${
+              isDarkMode ? 'text-gray-300' : 'text-gray-700'
+            }`}>Legal Disclaimer & Licensing</h4>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <p>
@@ -558,7 +704,7 @@ const AiModelsVisualization = () => {
                 </p>
                 <p>
                   <strong>Dashboard Attribution:</strong> If you use, reference, or derive from this dashboard, you must provide attribution: 
-                  "Data visualization powered by AI Models Discovery Dashboard (https://github.com/vn6295337/llm-status-beacon)"
+                  "Data visualization powered by AI Models Discovery Dashboard - Deployed on Vercel"
                 </p>
               </div>
               <div className="space-y-2">
