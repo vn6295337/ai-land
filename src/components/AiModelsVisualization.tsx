@@ -1,25 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Bar } from 'react-chartjs-2';
+import { Treemap, ResponsiveContainer, Tooltip } from 'recharts';
 import { supabase } from '@/integrations/supabase/client';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-} from 'chart.js';
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend
-);
 
 const AiModelsVisualization = () => {
   const [chartData, setChartData] = useState<any>(null);
@@ -156,103 +138,45 @@ const AiModelsVisualization = () => {
     };
   };
 
-  const createChartData = (processedData: any) => {
+  const createTreemapData = (processedData: any) => {
     const { grouped, sortedProviders, sortedTaskTypes, providerTotals, taskTypeTotals } = processedData;
 
-    // Separate task types into major (>15 models) and minor (<=15 models)
-    const majorTaskTypes = sortedTaskTypes.filter((taskType: string) => taskTypeTotals[taskType] > 15);
-    const minorTaskTypes = sortedTaskTypes.filter((taskType: string) => taskTypeTotals[taskType] <= 15);
-
-    // Get all unique task types (including 'others')
-    const allTaskTypes = [...majorTaskTypes];
-    if (minorTaskTypes.length > 0) {
-      allTaskTypes.push('others');
-    }
-
-    // Create consistent color mapping for all task types
+    // Create consistent color mapping for all task types using the same colors
     const colorMapping: Record<string, string> = {};
-    allTaskTypes.forEach((taskType, index) => {
-      if (taskType === 'others') {
-        colorMapping[taskType] = COLORS[majorTaskTypes.length % COLORS.length];
-      } else {
-        colorMapping[taskType] = COLORS[majorTaskTypes.indexOf(taskType) % COLORS.length];
-      }
+    sortedTaskTypes.forEach((taskType: string, index: number) => {
+      colorMapping[taskType] = COLORS[index % COLORS.length];
     });
 
-    // For each provider, calculate task type counts and sort them by descending order
-    const providerTaskTypeCounts: Record<string, Array<{taskType: string, count: number}>> = {};
-    sortedProviders.forEach((provider: string) => {
-      const taskTypeCounts = majorTaskTypes.map((taskType: string) => ({
-        taskType,
-        count: grouped[provider][taskType] || 0
-      }));
+    // Create treemap data structure
+    const treemapData = sortedProviders.map((provider: string, providerIndex: number) => {
+      const providerData = grouped[provider];
+      const total = providerTotals[provider];
       
-      // Add others category if it exists
-      if (minorTaskTypes.length > 0) {
-        const othersCount = minorTaskTypes.reduce((sum: number, taskType: string) => {
-          return sum + (grouped[provider][taskType] || 0);
-        }, 0);
-        taskTypeCounts.push({ taskType: 'others', count: othersCount });
-      }
-      
-      // Sort by count descending for this provider
-      providerTaskTypeCounts[provider] = taskTypeCounts.sort((a, b) => b.count - a.count);
+      // Get task types for this provider and sort by count
+      const taskTypes = Object.entries(providerData)
+        .filter(([_, count]) => (count as number) > 0)
+        .sort(([, a], [, b]) => (b as number) - (a as number))
+        .map(([taskType, count]) => ({
+          name: taskType,
+          size: count as number,
+          fill: colorMapping[taskType] || COLORS[0],
+          taskType: taskType
+        }));
+
+      return {
+        name: provider,
+        size: total,
+        children: taskTypes,
+        fill: COLORS[providerIndex % COLORS.length],
+        total: total
+      };
     });
-
-    // Create datasets based on per-provider sorting
-    // We need to create a "virtual" stacking where each segment represents a rank position
-    const maxRanks = Math.max(...Object.values(providerTaskTypeCounts).map(counts => counts.length));
-    
-    const datasets = [];
-    for (let rank = 0; rank < maxRanks; rank++) {
-      const data: number[] = [];
-      const taskTypeForRank: string[] = [];
-      
-      // For each provider, get the task type at this rank position
-      sortedProviders.forEach((provider: string) => {
-        const providerCounts = providerTaskTypeCounts[provider];
-        if (rank < providerCounts.length) {
-          data.push(providerCounts[rank].count);
-          taskTypeForRank.push(providerCounts[rank].taskType);
-        } else {
-          data.push(0);
-          taskTypeForRank.push('');
-        }
-      });
-
-      // Determine the most common task type at this rank for labeling
-      const taskTypeFreq: Record<string, number> = {};
-      taskTypeForRank.forEach(taskType => {
-        if (taskType) {
-          taskTypeFreq[taskType] = (taskTypeFreq[taskType] || 0) + 1;
-        }
-      });
-      const mostCommonTaskType = Object.keys(taskTypeFreq).reduce((a, b) => 
-        taskTypeFreq[a] > taskTypeFreq[b] ? a : b, Object.keys(taskTypeFreq)[0]
-      );
-
-      if (mostCommonTaskType) {
-        datasets.push({
-          label: mostCommonTaskType,
-          data,
-          backgroundColor: colorMapping[mostCommonTaskType] || COLORS[rank % COLORS.length],
-          borderColor: 'white',
-          borderWidth: 0.5,
-          taskTypeForRank: taskTypeForRank, // Store task type for each provider
-        });
-      }
-    }
-
-    // Calculate dynamic y-axis maximum
-    const maxProviderTotal = Math.max(...sortedProviders.map(provider => providerTotals[provider]));
-    const yAxisMax = Math.ceil(maxProviderTotal / 10) * 10; // Round up to nearest 10
 
     return {
-      labels: sortedProviders,
-      datasets,
-      providerTotals: sortedProviders.map(provider => providerTotals[provider]),
-      providerTaskTypeCounts, // Store for tooltip customization
-      yAxisMax // Dynamic y-axis maximum
+      data: treemapData,
+      colorMapping,
+      providerTotals,
+      taskTypeTotals
     };
   };
 
@@ -261,9 +185,9 @@ const AiModelsVisualization = () => {
       try {
         const rawData = await fetchModelData();
         const processedData = processData(rawData);
-        const chartConfig = createChartData(processedData);
+        const treemapConfig = createTreemapData(processedData);
         
-        setChartData(chartConfig);
+        setChartData(treemapConfig);
 
         // Set summary statistics
         setSummaryStats({
@@ -310,102 +234,117 @@ const AiModelsVisualization = () => {
     setExpandedTaskTypes(newExpanded);
   };
 
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      title: {
-        display: false
-      },
-      legend: {
-        display: true,
-        position: 'top' as const,
-        align: 'end' as const,
-        labels: {
-          usePointStyle: true,
-          pointStyle: 'rect',
-          pointStyleWidth: 12,
-          pointStyleHeight: 8,
-          padding: 8,
-          font: {
-            size: 10
-          },
-          boxWidth: 12,
-          boxHeight: 8,
-          color: isDarkMode ? '#E5E7EB' : '#374151'
-        },
-        title: {
-          display: true,
-          text: 'Task Types',
-          font: {
-            size: 11,
-            weight: 'bold' as const
-          },
-          padding: {
-            bottom: 5
-          },
-          color: isDarkMode ? '#E5E7EB' : '#374151'
-        }
-      },
-      tooltip: {
-        mode: 'index' as const,
-        intersect: false,
-        backgroundColor: isDarkMode ? '#374151' : '#FFFFFF',
-        titleColor: isDarkMode ? '#F9FAFB' : '#111827',
-        bodyColor: isDarkMode ? '#E5E7EB' : '#374151',
-        borderColor: isDarkMode ? '#4B5563' : '#D1D5DB',
-        borderWidth: 1,
-        callbacks: {
-          afterTitle: function(tooltipItems: any) {
-            const providerIndex = tooltipItems[0].dataIndex;
-            const total = chartData?.providerTotals[providerIndex] || 0;
-            return `Total: ${total} models`;
-          },
-          label: function(context: any) {
-            const datasetIndex = context.datasetIndex;
-            const providerIndex = context.dataIndex;
-            const dataset = chartData?.datasets[datasetIndex];
-            const taskTypeForRank = dataset?.taskTypeForRank;
-            
-            if (taskTypeForRank && taskTypeForRank[providerIndex]) {
-              const actualTaskType = taskTypeForRank[providerIndex];
-              const value = context.parsed.y;
-              return `${actualTaskType}: ${value} models`;
-            }
-            
-            return `${context.dataset.label}: ${context.parsed.y} models`;
-          }
-        }
-      }
-    },
-    scales: {
-      x: {
-        stacked: true,
-        ticks: {
-          maxRotation: 45,
-          minRotation: 45,
-          font: {
-            size: 10
-          },
-          color: isDarkMode ? '#E5E7EB' : '#374151'
-        },
-        grid: {
-          color: isDarkMode ? '#374151' : '#E5E7EB'
-        }
-      },
-      y: {
-        stacked: true,
-        display: true,
-        max: chartData?.yAxisMax,
-        ticks: {
-          color: isDarkMode ? '#E5E7EB' : '#374151'
-        },
-        grid: {
-          display: true,
-          color: isDarkMode ? '#374151' : '#E5E7EB'
-        }
-      }
+  // Custom treemap cell component
+  const CustomTreemapCell = (props: any) => {
+    const { root, depth, x, y, width, height, index, payload, colors } = props;
+    
+    if (depth === 1) {
+      // Provider level - show provider name and total
+      return (
+        <g>
+          <rect
+            x={x}
+            y={y}
+            width={width}
+            height={height}
+            style={{
+              fill: payload.fill,
+              stroke: isDarkMode ? '#374151' : '#FFFFFF',
+              strokeWidth: 2,
+              strokeOpacity: 1
+            }}
+          />
+          <text
+            x={x + width / 2}
+            y={y + height / 2 - 10}
+            textAnchor="middle"
+            fill={isDarkMode ? '#F9FAFB' : '#000000'}
+            fontSize="14"
+            fontWeight="bold"
+          >
+            {payload.name}
+          </text>
+          <text
+            x={x + width / 2}
+            y={y + height / 2 + 10}
+            textAnchor="middle"
+            fill={isDarkMode ? '#E5E7EB' : '#374151'}
+            fontSize="12"
+          >
+            {payload.total} models
+          </text>
+        </g>
+      );
     }
+    
+    if (depth === 2) {
+      // Task type level - show task type and count
+      const showText = width > 60 && height > 30; // Only show text if cell is large enough
+      
+      return (
+        <g>
+          <rect
+            x={x}
+            y={y}
+            width={width}
+            height={height}
+            style={{
+              fill: payload.fill,
+              stroke: isDarkMode ? '#374151' : '#FFFFFF',
+              strokeWidth: 1,
+              fillOpacity: 0.8
+            }}
+          />
+          {showText && (
+            <>
+              <text
+                x={x + width / 2}
+                y={y + height / 2 - 5}
+                textAnchor="middle"
+                fill={isDarkMode ? '#F9FAFB' : '#000000'}
+                fontSize="10"
+                fontWeight="600"
+              >
+                {payload.name}
+              </text>
+              <text
+                x={x + width / 2}
+                y={y + height / 2 + 8}
+                textAnchor="middle"
+                fill={isDarkMode ? '#E5E7EB' : '#374151'}
+                fontSize="9"
+              >
+                {payload.size}
+              </text>
+            </>
+          )}
+        </g>
+      );
+    }
+    
+    return null;
+  };
+
+  // Custom tooltip for treemap
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload[0]) {
+      const data = payload[0].payload;
+      
+      return (
+        <div className={`p-3 rounded-lg shadow-lg border ${
+          isDarkMode 
+            ? 'bg-gray-800 border-gray-600 text-gray-100' 
+            : 'bg-white border-gray-200 text-gray-900'
+        }`}>
+          <div className="font-semibold">{data.name}</div>
+          <div className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+            {data.size} models
+            {data.taskType && ` • ${data.taskType}`}
+          </div>
+        </div>
+      );
+    }
+    return null;
   };
 
   if (loading) {
@@ -474,15 +413,47 @@ const AiModelsVisualization = () => {
         </div>
 
         <div className="flex-1 space-y-4">
-          {/* Chart Container */}
-          <div className={`p-4 rounded-lg shadow-lg h-80 ${
+          {/* Treemap Container */}
+          <div className={`p-4 rounded-lg shadow-lg h-96 ${
             isDarkMode ? 'bg-gray-800' : 'bg-white'
           }`}>
             <div className="h-full">
-              <Bar data={chartData} options={chartOptions} />
+              <ResponsiveContainer width="100%" height="100%">
+                <Treemap
+                  data={chartData?.data || []}
+                  dataKey="size"
+                  aspectRatio={4/3}
+                  stroke={isDarkMode ? '#374151' : '#FFFFFF'}
+                  strokeWidth={2}
+                  content={<CustomTreemapCell />}
+                >
+                  <Tooltip content={<CustomTooltip />} />
+                </Treemap>
+              </ResponsiveContainer>
             </div>
-            {/* Last Updated - moved below chart */}
-            <p className={`text-xs mt-2 text-center ${
+            
+            {/* Legend for Task Types */}
+            {chartData?.colorMapping && (
+              <div className="mt-4 flex flex-wrap justify-center gap-4">
+                <div className={`text-xs font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Task Types:
+                </div>
+                {Object.entries(chartData.colorMapping).map(([taskType, color]) => (
+                  <div key={taskType} className="flex items-center gap-1">
+                    <div 
+                      className="w-3 h-3 rounded-sm" 
+                      style={{ backgroundColor: color }}
+                    />
+                    <span className={`text-xs ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                      {taskType}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {/* Last Updated */}
+            <p className={`text-xs mt-3 text-center ${
               isDarkMode ? 'text-gray-400' : 'text-gray-500'
             }`}>
               Last updated: {lastRefresh.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })} UTC • Auto-refreshes every 5 minutes
