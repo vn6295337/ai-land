@@ -34,31 +34,27 @@ const AiModelsVisualization = () => {
 
   const fetchModelData = async () => {
     try {
-      const allData = [];
-      const limit = 1000;
-      let offset = 0;
+      console.log('Fetching model data...');
+      const response = await supabase
+        .from('ai_models_discovery')
+        .select('*')
+        .order('id', { ascending: false });
 
-      while (true) {
-        const response = await (supabase as any)
-          .from('ai_models_discovery')
-          .select('*')
-          .order('id', { ascending: false })
-          .range(offset, offset + limit - 1);
+      console.log('Supabase response:', response);
 
-        if (response.error) {
-          throw response.error;
-        }
-
-        const data = response.data;
-        if (!data || data.length === 0) break;
-
-        allData.push(...data);
-        offset += limit;
-
-        if (data.length < limit) break;
+      if (response.error) {
+        console.error('Supabase error:', response.error);
+        throw response.error;
       }
 
-      return allData;
+      if (!response.data || response.data.length === 0) {
+        console.warn('No data returned from Supabase');
+        return [];
+      }
+
+      console.log(`Successfully fetched ${response.data.length} records`);
+      console.log('Sample record:', response.data[0]);
+      return response.data;
     } catch (err) {
       console.error('Error fetching data:', err);
       throw err;
@@ -184,8 +180,13 @@ const AiModelsVisualization = () => {
     const loadData = async () => {
       try {
         const rawData = await fetchModelData();
+        console.log('Raw data length:', rawData.length);
+        
         const processedData = processData(rawData);
+        console.log('Processed data:', processedData);
+        
         const treemapConfig = createTreemapData(processedData);
+        console.log('Treemap config:', treemapConfig);
         
         setChartData(treemapConfig);
 
@@ -209,7 +210,8 @@ const AiModelsVisualization = () => {
         setLastRefresh(new Date());
 
       } catch (err: any) {
-        setError(err.message);
+        console.error('Load data error:', err);
+        setError(err.message || 'Failed to load data');
       } finally {
         setLoading(false);
       }
