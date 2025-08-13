@@ -42,7 +42,7 @@ const AiModelsVisualization = () => {
         const response = await (supabase as any)
           .from('ai_models_discovery')
           .select('*')
-          .order('discovery_timestamp', { ascending: false })
+          .order('id', { ascending: false })
           .range(offset, offset + limit - 1);
 
         if (response.error) {
