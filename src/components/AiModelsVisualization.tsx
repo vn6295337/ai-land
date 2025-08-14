@@ -1,15 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Treemap, ResponsiveContainer, Tooltip } from 'recharts';
 import { supabase } from '@/integrations/supabase/client';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 
 const AiModelsVisualization = () => {
-  const [chartData, setChartData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [summaryStats, setSummaryStats] = useState<any>(null);
   const [detailedBreakdown, setDetailedBreakdown] = useState<any>(null);
   const [expandedTaskTypes, setExpandedTaskTypes] = useState<Set<string>>(new Set());
+  const [expandedOriginators, setExpandedOriginators] = useState<Set<string>>(new Set());
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [isDarkMode, setIsDarkMode] = useState(false);
 
@@ -65,7 +64,8 @@ const AiModelsVisualization = () => {
     // Apply task type mapping
     const processedData = rawData.map(item => ({
       ...item,
-      task_type: OTHER_TASK_TYPES_MAPPING[item.task_type as keyof typeof OTHER_TASK_TYPES_MAPPING] || item.task_type
+      task_type: OTHER_TASK_TYPES_MAPPING[item.task_type as keyof typeof OTHER_TASK_TYPES_MAPPING] || item.task_type,
+      model_originator: item.model_originator || item.provider || 'unknown'
     }));
 
     // Group by provider and task_type
@@ -75,6 +75,32 @@ const AiModelsVisualization = () => {
       if (!grouped[provider]) grouped[provider] = {};
       if (!grouped[provider][task_type]) grouped[provider][task_type] = 0;
       grouped[provider][task_type]++;
+    });
+
+    // Group models by provider and originator for collapsible menu
+    const modelsByProviderAndOriginator: Record<string, Record<string, any[]>> = {};
+    processedData.forEach(item => {
+      const { provider, model_originator, model_name, task_type } = item;
+      if (!modelsByProviderAndOriginator[provider]) {
+        modelsByProviderAndOriginator[provider] = {};
+      }
+      if (!modelsByProviderAndOriginator[provider][model_originator]) {
+        modelsByProviderAndOriginator[provider][model_originator] = [];
+      }
+      modelsByProviderAndOriginator[provider][model_originator].push({
+        model_name,
+        task_type,
+        ...item
+      });
+    });
+
+    // Sort models within each originator by model name
+    Object.keys(modelsByProviderAndOriginator).forEach(provider => {
+      Object.keys(modelsByProviderAndOriginator[provider]).forEach(originator => {
+        modelsByProviderAndOriginator[provider][originator].sort((a, b) => 
+          a.model_name.localeCompare(b.model_name)
+        );
+      });
     });
 
     // Group models by task type for dropdown functionality
@@ -130,50 +156,11 @@ const AiModelsVisualization = () => {
         return acc;
       }, {}),
       taskTypeTotals,
-      modelsByTaskType
+      modelsByTaskType,
+      modelsByProviderAndOriginator
     };
   };
 
-  const createTreemapData = (processedData: any) => {
-    const { grouped, sortedProviders, sortedTaskTypes, providerTotals, taskTypeTotals } = processedData;
-
-    // Create consistent color mapping for all task types using the same colors
-    const colorMapping: Record<string, string> = {};
-    sortedTaskTypes.forEach((taskType: string, index: number) => {
-      colorMapping[taskType] = COLORS[index % COLORS.length];
-    });
-
-    // Create simple flat structure for treemap - each provider/task combination gets one cell
-    const treemapData: any[] = [];
-    
-    sortedProviders.forEach((provider: string, providerIndex: number) => {
-      const providerData = grouped[provider];
-      const total = providerTotals[provider];
-      
-      // Add cells for each task type in this provider
-      Object.entries(providerData)
-        .filter(([_, count]) => (count as number) > 0)
-        .forEach(([taskType, count]) => {
-          treemapData.push({
-            name: `${provider} - ${taskType}`,
-            provider: provider,
-            taskType: taskType,
-            size: count as number,
-            fill: colorMapping[taskType] || COLORS[0]
-          });
-        });
-    });
-
-    // Sort by size descending for better visualization
-    treemapData.sort((a, b) => b.size - a.size);
-
-    return {
-      data: treemapData,
-      colorMapping,
-      providerTotals,
-      taskTypeTotals
-    };
-  };
 
   useEffect(() => {
     const loadData = async () => {
@@ -183,11 +170,6 @@ const AiModelsVisualization = () => {
         
         const processedData = processData(rawData);
         console.log('Processed data:', processedData);
-        
-        const treemapConfig = createTreemapData(processedData);
-        console.log('Treemap config:', treemapConfig);
-        
-        setChartData(treemapConfig);
 
         // Set summary statistics
         setSummaryStats({
@@ -202,7 +184,8 @@ const AiModelsVisualization = () => {
           sortedProviders: processedData.sortedProviders,
           sortedTaskTypes: processedData.sortedTaskTypes,
           taskTypeTotals: processedData.taskTypeTotals,
-          modelsByTaskType: processedData.modelsByTaskType
+          modelsByTaskType: processedData.modelsByTaskType,
+          modelsByProviderAndOriginator: processedData.modelsByProviderAndOriginator
         });
 
         // Update last refresh timestamp
@@ -235,84 +218,16 @@ const AiModelsVisualization = () => {
     setExpandedTaskTypes(newExpanded);
   };
 
-  // Simple treemap cell component
-  const CustomTreemapCell = (props: any) => {
-    const { x, y, width, height, payload } = props;
-    
-    // Only render if we have valid dimensions
-    if (!width || !height || width < 5 || height < 5) {
-      return null;
+  const toggleOriginator = (providerOriginator: string) => {
+    const newExpanded = new Set(expandedOriginators);
+    if (newExpanded.has(providerOriginator)) {
+      newExpanded.delete(providerOriginator);
+    } else {
+      newExpanded.add(providerOriginator);
     }
-    
-    return (
-      <g>
-        <rect
-          x={x}
-          y={y}
-          width={width}
-          height={height}
-          fill={payload?.fill || '#4E79A7'}
-          stroke="#FFFFFF"
-          strokeWidth={1}
-          opacity={0.8}
-        />
-        {width > 60 && height > 30 && (
-          <>
-            <text
-              x={x + width / 2}
-              y={y + height / 2 - 8}
-              textAnchor="middle"
-              fill="#FFFFFF"
-              fontSize="10"
-              fontWeight="bold"
-            >
-              {payload?.provider}
-            </text>
-            <text
-              x={x + width / 2}
-              y={y + height / 2 + 4}
-              textAnchor="middle"
-              fill="#FFFFFF"
-              fontSize="8"
-            >
-              {payload?.taskType}
-            </text>
-            <text
-              x={x + width / 2}
-              y={y + height / 2 + 16}
-              textAnchor="middle"
-              fill="#FFFFFF"
-              fontSize="8"
-              fontWeight="bold"
-            >
-              {payload?.size}
-            </text>
-          </>
-        )}
-      </g>
-    );
+    setExpandedOriginators(newExpanded);
   };
 
-  // Custom tooltip for treemap
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload[0]) {
-      const data = payload[0].payload;
-      
-      return (
-        <div className={`p-3 rounded-lg shadow-lg border ${
-          isDarkMode 
-            ? 'bg-gray-800 border-gray-600 text-gray-100' 
-            : 'bg-white border-gray-200 text-gray-900'
-        }`}>
-          <div className="font-semibold">{data.provider}</div>
-          <div className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-            {data.taskType} • {data.size} models
-          </div>
-        </div>
-      );
-    }
-    return null;
-  };
 
   if (loading) {
     return (
@@ -336,7 +251,7 @@ const AiModelsVisualization = () => {
     );
   }
 
-  if (!chartData) {
+  if (!summaryStats) {
     return (
       <div className={`min-h-screen flex items-center justify-center ${
         isDarkMode ? 'bg-gray-900' : 'bg-gray-50'
@@ -370,62 +285,22 @@ const AiModelsVisualization = () => {
           <h1 className={`text-2xl font-bold ${
             isDarkMode ? 'text-gray-100' : 'text-gray-900'
           }`}>
-            Free & Open AI Models
+            Free to use models
           </h1>
           <p className={`text-lg mt-2 ${
             isDarkMode ? 'text-gray-300' : 'text-gray-600'
           }`}>
-            Interactive tracker of API-accessible and publicly available LLMs/SLMs
+            Interactive tracker of API-accessible and publicly available models
           </p>
         </div>
 
         <div className="flex-1 space-y-4">
-          {/* Treemap Container */}
-          <div className={`p-4 rounded-lg shadow-lg h-96 ${
-            isDarkMode ? 'bg-gray-800' : 'bg-white'
+          {/* Last Updated */}
+          <p className={`text-xs text-center ${
+            isDarkMode ? 'text-gray-400' : 'text-gray-500'
           }`}>
-            <div className="h-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <Treemap
-                  data={chartData?.data || []}
-                  dataKey="size"
-                  aspectRatio={4/3}
-                  stroke={isDarkMode ? '#374151' : '#FFFFFF'}
-                  strokeWidth={2}
-                  content={<CustomTreemapCell />}
-                >
-                  <Tooltip content={<CustomTooltip />} />
-                </Treemap>
-              </ResponsiveContainer>
-            </div>
-            
-            {/* Legend for Task Types */}
-            {chartData?.colorMapping && (
-              <div className="mt-4 flex flex-wrap justify-center gap-4">
-                <div className={`text-xs font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Task Types:
-                </div>
-                {Object.entries(chartData.colorMapping).map(([taskType, color]) => (
-                  <div key={taskType} className="flex items-center gap-1">
-                    <div 
-                      className="w-3 h-3 rounded-sm" 
-                      style={{ backgroundColor: color }}
-                    />
-                    <span className={`text-xs ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                      {taskType}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-            
-            {/* Last Updated */}
-            <p className={`text-xs mt-3 text-center ${
-              isDarkMode ? 'text-gray-400' : 'text-gray-500'
-            }`}>
-              Last updated: {lastRefresh.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })} UTC • Auto-refreshes every 5 minutes
-            </p>
-          </div>
+            Last updated: {lastRefresh.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })} UTC • Auto-refreshes every 5 minutes
+          </p>
 
           {/* Summary Statistics */}
           {summaryStats && (
@@ -474,51 +349,114 @@ const AiModelsVisualization = () => {
                 isDarkMode ? 'text-gray-100' : 'text-gray-900'
               }`}>📋 Detailed Breakdown by Provider and Task Type</h3>
               
-              {/* Provider breakdown table */}
-              <div className="overflow-x-auto mb-6">
-                <table className="min-w-full table-auto border-collapse">
-                  <thead>
-                    <tr className={isDarkMode ? 'bg-gray-700' : 'bg-gray-100'}>
-                      <th className={`border px-4 py-2 text-left ${
-                        isDarkMode ? 'border-gray-600 text-gray-200' : 'border-gray-300 text-gray-900'
-                      }`}>Provider</th>
-                       {detailedBreakdown.sortedTaskTypes.map((taskType: string) => (
-                         <th key={taskType} className={`border px-2 py-2 text-center text-xs ${
-                           isDarkMode ? 'border-gray-600 text-gray-200' : 'border-gray-300 text-gray-900'
-                         }`}>
-                           {taskType}
-                         </th>
-                       ))}
-                      <th className={`border px-4 py-2 text-center font-bold ${
-                        isDarkMode ? 'border-gray-600 text-gray-200' : 'border-gray-300 text-gray-900'
-                      }`}>Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {detailedBreakdown.sortedProviders.map((provider: string) => {
-                      const providerData = detailedBreakdown.providerBreakdown[provider];
-                      const total = Object.values(providerData).reduce((sum: number, count: number) => sum + count, 0);
+              {/* Provider breakdown with collapsible originators */}
+              <div className="space-y-4 mb-6">
+                {detailedBreakdown.sortedProviders.map((provider: string) => {
+                  const providerData = detailedBreakdown.providerBreakdown[provider];
+                  const total = Object.values(providerData).reduce((sum: number, count: number) => sum + count, 0);
+                  const originatorData = detailedBreakdown.modelsByProviderAndOriginator[provider] || {};
+                  
+                  return (
+                    <div key={provider} className={`rounded-lg border ${
+                      isDarkMode ? 'border-gray-600 bg-gray-700' : 'border-gray-300 bg-gray-50'
+                    }`}>
+                      {/* Provider Header */}
+                      <div className={`p-4 border-b ${
+                        isDarkMode ? 'border-gray-600' : 'border-gray-300'
+                      }`}>
+                        <div className="flex justify-between items-center">
+                          <h4 className={`font-bold text-lg ${
+                            isDarkMode ? 'text-gray-100' : 'text-gray-900'
+                          }`}>{provider}</h4>
+                          <div className="flex gap-4">
+                            {detailedBreakdown.sortedTaskTypes.map((taskType: string) => (
+                              <div key={taskType} className="text-center">
+                                <div className={`text-sm font-medium ${
+                                  isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                                }`}>{taskType}</div>
+                                <div className={`text-lg font-bold ${
+                                  isDarkMode ? 'text-gray-100' : 'text-gray-900'
+                                }`}>{providerData[taskType] || 0}</div>
+                              </div>
+                            ))}
+                            <div className="text-center border-l pl-4 ml-4 border-gray-400">
+                              <div className={`text-sm font-medium ${
+                                isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                              }`}>Total</div>
+                              <div className={`text-lg font-bold ${
+                                isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                              }`}>{total}</div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                       
-                      return (
-                        <tr key={provider} className={isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50'}>
-                          <td className={`border px-4 py-2 font-semibold ${
-                            isDarkMode ? 'border-gray-600 text-gray-200' : 'border-gray-300 text-gray-900'
-                          }`}>{provider}</td>
-                         {detailedBreakdown.sortedTaskTypes.map((taskType: string) => (
-                           <td key={taskType} className={`border px-2 py-2 text-center ${
-                             isDarkMode ? 'border-gray-600 text-gray-300' : 'border-gray-300 text-gray-700'
-                           }`}>
-                             {providerData[taskType] || 0}
-                           </td>
-                         ))}
-                          <td className={`border px-4 py-2 text-center font-bold ${
-                            isDarkMode ? 'border-gray-600 text-gray-200' : 'border-gray-300 text-gray-900'
-                          }`}>{total as number}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                      {/* Originators */}
+                      <div className="p-4">
+                        <h5 className={`font-semibold mb-3 ${
+                          isDarkMode ? 'text-gray-200' : 'text-gray-800'
+                        }`}>Model Originators:</h5>
+                        <div className="space-y-2">
+                          {Object.entries(originatorData)
+                            .sort((a, b) => b[1].length - a[1].length)
+                            .map(([originator, models]: [string, any[]]) => {
+                              const originatorKey = `${provider}-${originator}`;
+                              const isExpanded = expandedOriginators.has(originatorKey);
+                              
+                              return (
+                                <div key={originator} className={`rounded ${
+                                  isDarkMode ? 'bg-gray-600' : 'bg-gray-100'
+                                }`}>
+                                  <div 
+                                    className={`flex justify-between items-center px-3 py-2 cursor-pointer rounded ${
+                                      isDarkMode ? 'hover:bg-gray-500' : 'hover:bg-gray-200'
+                                    }`}
+                                    onClick={() => toggleOriginator(originatorKey)}
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <span className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>
+                                        {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                                      </span>
+                                      <span className={`font-medium ${
+                                        isDarkMode ? 'text-gray-100' : 'text-gray-900'
+                                      }`}>{originator}</span>
+                                    </div>
+                                    <span className={`font-semibold ${
+                                      isDarkMode ? 'text-gray-100' : 'text-gray-900'
+                                    }`}>{models.length} models</span>
+                                  </div>
+                                  
+                                  {isExpanded && (
+                                    <div className="px-6 pb-3">
+                                      <div className="max-h-40 overflow-y-auto">
+                                        <div className="space-y-1">
+                                          {models.map((model, index) => (
+                                            <div key={index} className={`text-sm py-1 px-2 rounded ${
+                                              isDarkMode ? 'text-gray-300 bg-gray-700' : 'text-gray-700 bg-white'
+                                            }`}>
+                                              <div className="flex justify-between items-center">
+                                                <span className="font-medium">{model.model_name}</span>
+                                                <div className="flex items-center gap-2">
+                                                  <span className={`px-2 py-1 rounded text-xs ${
+                                                    isDarkMode ? 'bg-blue-600 text-blue-100' : 'bg-blue-100 text-blue-800'
+                                                  }`}>{model.task_type}</span>
+                                                  <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                                                </div>
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
 
               {/* Task type totals with dropdown */}
