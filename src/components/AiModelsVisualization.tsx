@@ -8,6 +8,7 @@ const AiModelsVisualization = () => {
   const [summaryStats, setSummaryStats] = useState<any>(null);
   const [detailedBreakdown, setDetailedBreakdown] = useState<any>(null);
   const [expandedTaskTypes, setExpandedTaskTypes] = useState<Set<string>>(new Set());
+  const [expandedProviders, setExpandedProviders] = useState<Set<string>>(new Set());
   const [expandedOriginators, setExpandedOriginators] = useState<Set<string>>(new Set());
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -218,6 +219,16 @@ const AiModelsVisualization = () => {
     setExpandedTaskTypes(newExpanded);
   };
 
+  const toggleProvider = (provider: string) => {
+    const newExpanded = new Set(expandedProviders);
+    if (newExpanded.has(provider)) {
+      newExpanded.delete(provider);
+    } else {
+      newExpanded.add(provider);
+    }
+    setExpandedProviders(newExpanded);
+  };
+
   const toggleOriginator = (providerOriginator: string) => {
     const newExpanded = new Set(expandedOriginators);
     if (newExpanded.has(providerOriginator)) {
@@ -349,25 +360,34 @@ const AiModelsVisualization = () => {
                 isDarkMode ? 'text-gray-100' : 'text-gray-900'
               }`}>📋 Detailed Breakdown by Provider and Task Type</h3>
               
-              {/* Provider breakdown with collapsible originators */}
+              {/* Provider breakdown with collapsible providers */}
               <div className="space-y-4 mb-6">
                 {detailedBreakdown.sortedProviders.map((provider: string) => {
                   const providerData = detailedBreakdown.providerBreakdown[provider];
                   const total = Object.values(providerData).reduce((sum: number, count: number) => sum + count, 0);
                   const originatorData = detailedBreakdown.modelsByProviderAndOriginator[provider] || {};
+                  const isProviderExpanded = expandedProviders.has(provider);
                   
                   return (
                     <div key={provider} className={`rounded-lg border ${
                       isDarkMode ? 'border-gray-600 bg-gray-700' : 'border-gray-300 bg-gray-50'
                     }`}>
-                      {/* Provider Header */}
-                      <div className={`p-4 border-b ${
-                        isDarkMode ? 'border-gray-600' : 'border-gray-300'
-                      }`}>
+                      {/* Provider Header - Clickable */}
+                      <div 
+                        className={`p-4 cursor-pointer ${
+                          isDarkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-100'
+                        }`}
+                        onClick={() => toggleProvider(provider)}
+                      >
                         <div className="flex justify-between items-center">
-                          <h4 className={`font-bold text-lg ${
-                            isDarkMode ? 'text-gray-100' : 'text-gray-900'
-                          }`}>{provider}</h4>
+                          <div className="flex items-center gap-3">
+                            <span className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>
+                              {isProviderExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+                            </span>
+                            <h4 className={`font-bold text-lg ${
+                              isDarkMode ? 'text-gray-100' : 'text-gray-900'
+                            }`}>{provider}</h4>
+                          </div>
                           <div className="flex gap-4">
                             {detailedBreakdown.sortedTaskTypes.map((taskType: string) => (
                               <div key={taskType} className="text-center">
@@ -391,69 +411,70 @@ const AiModelsVisualization = () => {
                         </div>
                       </div>
                       
-                      {/* Originators */}
-                      <div className="p-4">
-                        <h5 className={`font-semibold mb-3 ${
-                          isDarkMode ? 'text-gray-200' : 'text-gray-800'
-                        }`}>Model Originators:</h5>
-                        <div className="space-y-2">
-                          {Object.entries(originatorData)
-                            .sort((a, b) => b[1].length - a[1].length)
-                            .map(([originator, models]: [string, any[]]) => {
-                              const originatorKey = `${provider}-${originator}`;
-                              const isExpanded = expandedOriginators.has(originatorKey);
-                              
-                              return (
-                                <div key={originator} className={`rounded ${
-                                  isDarkMode ? 'bg-gray-600' : 'bg-gray-100'
-                                }`}>
-                                  <div 
-                                    className={`flex justify-between items-center px-3 py-2 cursor-pointer rounded ${
-                                      isDarkMode ? 'hover:bg-gray-500' : 'hover:bg-gray-200'
-                                    }`}
-                                    onClick={() => toggleOriginator(originatorKey)}
-                                  >
-                                    <div className="flex items-center gap-2">
-                                      <span className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>
-                                        {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                                      </span>
-                                      <span className={`font-medium ${
+                      {/* Collapsible content - Direct originators */}
+                      {isProviderExpanded && (
+                        <div className={`p-4 border-t ${
+                          isDarkMode ? 'border-gray-600' : 'border-gray-300'
+                        }`}>
+                          <div className="space-y-2">
+                            {Object.entries(originatorData)
+                              .sort((a, b) => b[1].length - a[1].length)
+                              .map(([originator, models]: [string, any[]]) => {
+                                const originatorKey = `${provider}-${originator}`;
+                                const isOriginatorExpanded = expandedOriginators.has(originatorKey);
+                                
+                                return (
+                                  <div key={originator} className={`rounded ${
+                                    isDarkMode ? 'bg-gray-600' : 'bg-gray-100'
+                                  }`}>
+                                    <div 
+                                      className={`flex justify-between items-center px-3 py-2 cursor-pointer rounded ${
+                                        isDarkMode ? 'hover:bg-gray-500' : 'hover:bg-gray-200'
+                                      }`}
+                                      onClick={() => toggleOriginator(originatorKey)}
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <span className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>
+                                          {isOriginatorExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                                        </span>
+                                        <span className={`font-medium ${
+                                          isDarkMode ? 'text-gray-100' : 'text-gray-900'
+                                        }`}>{originator}</span>
+                                      </div>
+                                      <span className={`font-semibold ${
                                         isDarkMode ? 'text-gray-100' : 'text-gray-900'
-                                      }`}>{originator}</span>
+                                      }`}>{models.length} models</span>
                                     </div>
-                                    <span className={`font-semibold ${
-                                      isDarkMode ? 'text-gray-100' : 'text-gray-900'
-                                    }`}>{models.length} models</span>
-                                  </div>
-                                  
-                                  {isExpanded && (
-                                    <div className="px-6 pb-3">
-                                      <div className="max-h-40 overflow-y-auto">
-                                        <div className="space-y-1">
-                                          {models.map((model, index) => (
-                                            <div key={index} className={`text-sm py-1 px-2 rounded ${
-                                              isDarkMode ? 'text-gray-300 bg-gray-700' : 'text-gray-700 bg-white'
-                                            }`}>
-                                              <div className="flex justify-between items-center">
-                                                <span className="font-medium">{model.model_name}</span>
-                                                <div className="flex items-center gap-2">
-                                                  <span className={`px-2 py-1 rounded text-xs ${
-                                                    isDarkMode ? 'bg-blue-600 text-blue-100' : 'bg-blue-100 text-blue-800'
-                                                  }`}>{model.task_type}</span>
-                                                  <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                                    
+                                    {isOriginatorExpanded && (
+                                      <div className="px-6 pb-3">
+                                        <div className="max-h-40 overflow-y-auto">
+                                          <div className="space-y-1">
+                                            {models.map((model, index) => (
+                                              <div key={index} className={`text-sm py-1 px-2 rounded ${
+                                                isDarkMode ? 'text-gray-300 bg-gray-700' : 'text-gray-700 bg-white'
+                                              }`}>
+                                                <div className="flex justify-between items-center">
+                                                  <span className="font-medium">{model.model_name}</span>
+                                                  <div className="flex items-center gap-2">
+                                                    <span className={`px-2 py-1 rounded text-xs ${
+                                                      isDarkMode ? 'bg-blue-600 text-blue-100' : 'bg-blue-100 text-blue-800'
+                                                    }`}>{model.task_type}</span>
+                                                    <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                                                  </div>
                                                 </div>
                                               </div>
-                                            </div>
-                                          ))}
+                                            ))}
+                                          </div>
                                         </div>
                                       </div>
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
+                                    )}
+                                  </div>
+                                );
+                              })}
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   );
                 })}
