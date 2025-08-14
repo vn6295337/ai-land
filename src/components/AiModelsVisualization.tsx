@@ -223,6 +223,11 @@ const AiModelsVisualization = () => {
       const license = model.license || 'N/A';
       const rateLimits = model.rate_limits || 'N/A';
 
+      // Exclude Together AI priced models from filter options
+      if (inferenceProvider === 'Together AI' && model.pricing && model.pricing.includes('$')) {
+        return false;
+      }
+
       return (
         (columnKey === 'inferenceProvider' || columnFilters.inferenceProvider.size === 0 || columnFilters.inferenceProvider.has(inferenceProvider)) &&
         (columnKey === 'modelProvider' || columnFilters.modelProvider.size === 0 || columnFilters.modelProvider.has(modelProvider)) &&
