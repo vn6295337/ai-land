@@ -5,11 +5,6 @@ import { ChevronDown, ChevronRight, ExternalLink } from 'lucide-react';
 const AiModelsVisualization = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [summaryStats, setSummaryStats] = useState<any>(null);
-  const [detailedBreakdown, setDetailedBreakdown] = useState<any>(null);
-  const [expandedTaskTypes, setExpandedTaskTypes] = useState<Set<string>>(new Set());
-  const [expandedProviders, setExpandedProviders] = useState<Set<string>>(new Set());
-  const [expandedOriginators, setExpandedOriginators] = useState<Set<string>>(new Set());
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [isDarkMode, setIsDarkMode] = useState(false);
 
@@ -204,31 +199,21 @@ const AiModelsVisualization = () => {
   };
 
 
+  const [models, setModels] = useState<any[]>([]);
+
   useEffect(() => {
     const loadData = async () => {
       try {
         const rawData = await fetchModelData();
         console.log('Raw data length:', rawData.length);
         
+        // Process data and set models for table display
         const processedData = processData(rawData);
-        console.log('Processed data:', processedData);
-
-        // Set summary statistics
-        setSummaryStats({
-          totalProviders: processedData.sortedProviders.length,
-          totalTaskTypes: processedData.sortedTaskTypes.length,
-          totalModels: Object.values(processedData.providerTotals).reduce((sum: number, count: number) => sum + count, 0)
-        });
-
-        // Set detailed breakdown
-        setDetailedBreakdown({
-          providerBreakdown: processedData.grouped,
-          sortedProviders: processedData.sortedProviders,
-          sortedTaskTypes: processedData.sortedTaskTypes,
-          taskTypeTotals: processedData.taskTypeTotals,
-          modelsByTaskType: processedData.modelsByTaskType,
-          modelsByProviderAndOriginator: processedData.modelsByProviderAndOriginator
-        });
+        setModels(rawData.map(item => ({
+          ...item,
+          task_type: TASK_TYPE_MAPPING[item.task_type as keyof typeof TASK_TYPE_MAPPING] || item.task_type,
+          model_originator: normalizeOriginator(item.model_originator || item.provider || 'unknown')
+        })));
 
         // Update last refresh timestamp
         setLastRefresh(new Date());
@@ -250,57 +235,6 @@ const AiModelsVisualization = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const toggleTaskType = (taskType: string) => {
-    const newExpanded = new Set(expandedTaskTypes);
-    if (newExpanded.has(taskType)) {
-      newExpanded.delete(taskType);
-    } else {
-      newExpanded.add(taskType);
-    }
-    setExpandedTaskTypes(newExpanded);
-  };
-
-  const toggleProvider = (provider: string) => {
-    const newExpanded = new Set(expandedProviders);
-    if (newExpanded.has(provider)) {
-      newExpanded.delete(provider);
-    } else {
-      newExpanded.add(provider);
-    }
-    setExpandedProviders(newExpanded);
-  };
-
-  const toggleOriginator = (providerOriginator: string) => {
-    const newExpanded = new Set(expandedOriginators);
-    if (newExpanded.has(providerOriginator)) {
-      newExpanded.delete(providerOriginator);
-    } else {
-      newExpanded.add(providerOriginator);
-    }
-    setExpandedOriginators(newExpanded);
-  };
-
-  const expandAllTaskTypes = () => {
-    if (detailedBreakdown) {
-      const allTaskTypes = new Set(Object.keys(detailedBreakdown.taskTypeTotals));
-      setExpandedTaskTypes(allTaskTypes);
-    }
-  };
-
-  const collapseAllTaskTypes = () => {
-    setExpandedTaskTypes(new Set());
-  };
-
-  const expandAllProviders = () => {
-    if (detailedBreakdown) {
-      const allProviders = new Set(detailedBreakdown.sortedProviders);
-      setExpandedProviders(allProviders);
-    }
-  };
-
-  const collapseAllProviders = () => {
-    setExpandedProviders(new Set());
-  };
 
 
   if (loading) {
@@ -325,7 +259,7 @@ const AiModelsVisualization = () => {
     );
   }
 
-  if (!summaryStats) {
+  if (!loading && models.length === 0) {
     return (
       <div className={`min-h-screen flex items-center justify-center ${
         isDarkMode ? 'bg-gray-900' : 'bg-gray-50'
@@ -389,304 +323,86 @@ const AiModelsVisualization = () => {
             Last updated: {lastRefresh.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })} UTC • Auto-refreshes every 5 minutes
           </p>
 
-          {/* Summary Statistics */}
-          {summaryStats && (
-            <div className={`p-6 rounded-lg shadow-lg ${
-              isDarkMode ? 'bg-gray-800' : 'bg-white'
-            }`}>
-              <h3 className={`text-lg font-bold mb-4 ${
-                isDarkMode ? 'text-gray-100' : 'text-gray-900'
-              }`}>📊 Summary Statistics</h3>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
-                <div className="text-center">
-                  <div className={`text-2xl font-bold ${
-                    isDarkMode ? 'text-blue-400' : 'text-blue-600'
-                  }`}>{summaryStats.totalProviders}</div>
-                  <div className={`text-sm ${
-                    isDarkMode ? 'text-gray-300' : 'text-gray-600'
-                  }`}>Total Providers</div>
-                </div>
-                <div className="text-center">
-                  <div className={`text-2xl font-bold ${
-                    isDarkMode ? 'text-green-400' : 'text-green-600'
-                  }`}>{summaryStats.totalTaskTypes}</div>
-                  <div className={`text-sm ${
-                    isDarkMode ? 'text-gray-300' : 'text-gray-600'
-                  }`}>Task Types</div>
-                </div>
-                <div className="text-center">
-                  <div className={`text-2xl font-bold ${
-                    isDarkMode ? 'text-purple-400' : 'text-purple-600'
-                  }`}>{summaryStats.totalModels}</div>
-                  <div className={`text-sm ${
-                    isDarkMode ? 'text-gray-300' : 'text-gray-600'
-                  }`}>Total Models</div>
-                </div>
-              </div>
-              
+          {/* Simple Structured Table */}
+          <div className={`p-6 rounded-lg shadow-lg ${
+            isDarkMode ? 'bg-gray-800' : 'bg-white'
+          }`}>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className={`border-b ${
+                    isDarkMode ? 'border-gray-600' : 'border-gray-300'
+                  }`}>
+                    <th className={`text-left py-3 px-4 font-semibold ${
+                      isDarkMode ? 'text-gray-200' : 'text-gray-900'
+                    }`}>Inference Provider</th>
+                    <th className={`text-left py-3 px-4 font-semibold ${
+                      isDarkMode ? 'text-gray-200' : 'text-gray-900'
+                    }`}>Model Provider</th>
+                    <th className={`text-left py-3 px-4 font-semibold ${
+                      isDarkMode ? 'text-gray-200' : 'text-gray-900'
+                    }`}>Model Name</th>
+                    <th className={`text-left py-3 px-4 font-semibold ${
+                      isDarkMode ? 'text-gray-200' : 'text-gray-900'
+                    }`}>Model Type</th>
+                    <th className={`text-left py-3 px-4 font-semibold ${
+                      isDarkMode ? 'text-gray-200' : 'text-gray-900'
+                    }`}>License</th>
+                    <th className={`text-left py-3 px-4 font-semibold ${
+                      isDarkMode ? 'text-gray-200' : 'text-gray-900'
+                    }`}>Pricing</th>
+                    <th className={`text-left py-3 px-4 font-semibold ${
+                      isDarkMode ? 'text-gray-200' : 'text-gray-900'
+                    }`}>Last Updated</th>
+                    <th className={`text-left py-3 px-4 font-semibold ${
+                      isDarkMode ? 'text-gray-200' : 'text-gray-900'
+                    }`}>Rate Limits</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {models.map((model, index) => {
+                    // If provider and model_originator are same, show only provider
+                    const modelProvider = normalizeOriginator(model.model_originator || model.provider || 'unknown');
+                    const inferenceProvider = normalizeCompanyName(model.provider);
+                    const displayModelProvider = (modelProvider === inferenceProvider) ? '' : modelProvider;
+                    
+                    return (
+                      <tr key={index} className={`border-b ${
+                        isDarkMode ? 'border-gray-700 hover:bg-gray-700' : 'border-gray-200 hover:bg-gray-50'
+                      } transition-colors`}>
+                        <td className={`py-3 px-4 text-sm ${
+                          isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>{inferenceProvider}</td>
+                        <td className={`py-3 px-4 text-sm ${
+                          isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>{displayModelProvider}</td>
+                        <td className={`py-3 px-4 text-sm font-medium ${
+                          isDarkMode ? 'text-gray-100' : 'text-gray-900'
+                        }`}>{model.model_name}</td>
+                        <td className={`py-3 px-4 text-sm ${
+                          isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>{formatTaskType(model.task_type)}</td>
+                        <td className={`py-3 px-4 text-sm ${
+                          isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>{model.license || 'N/A'}</td>
+                        <td className={`py-3 px-4 text-sm ${
+                          model.pricing?.toLowerCase().includes('free') 
+                            ? 'text-green-600 font-medium' 
+                            : isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>{model.pricing || 'N/A'}</td>
+                        <td className={`py-3 px-4 text-sm ${
+                          isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>{model.last_updated || model.updated_at || 'N/A'}</td>
+                        <td className={`py-3 px-4 text-sm ${
+                          isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>{model.rate_limits || 'N/A'}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
-          )}
-
-          {/* Detailed Breakdown */}
-          {detailedBreakdown && (
-            <div className={`p-6 rounded-lg shadow-lg ${
-              isDarkMode ? 'bg-gray-800' : 'bg-white'
-            }`}>
-              <div className="flex justify-between items-center mb-4">
-                <h3 className={`text-lg font-bold ${
-                  isDarkMode ? 'text-gray-100' : 'text-gray-900'
-                }`}>📋 Detailed Breakdown by Provider and Task Type</h3>
-                <div className="flex gap-2">
-                  <button
-                    onClick={expandAllProviders}
-                    className={`px-2 py-1 text-xs rounded transition-colors ${
-                      isDarkMode 
-                        ? 'bg-gray-600 hover:bg-gray-500 text-gray-200' 
-                        : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-                    }`}
-                  >
-                    Expand All
-                  </button>
-                  <button
-                    onClick={collapseAllProviders}
-                    className={`px-2 py-1 text-xs rounded transition-colors ${
-                      isDarkMode 
-                        ? 'bg-gray-600 hover:bg-gray-500 text-gray-200' 
-                        : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-                    }`}
-                  >
-                    Collapse All
-                  </button>
-                </div>
-              </div>
-              
-              {/* Provider breakdown with collapsible providers */}
-              <div className="space-y-4 mb-6">
-                {detailedBreakdown.sortedProviders.map((provider: string) => {
-                  const providerData = detailedBreakdown.providerBreakdown[provider];
-                  const total = Object.values(providerData).reduce((sum: number, count: number) => sum + count, 0);
-                  const originatorData = detailedBreakdown.modelsByProviderAndOriginator[provider] || {};
-                  const isProviderExpanded = expandedProviders.has(provider);
-                  
-                  return (
-                    <div key={provider} className={`rounded-lg border ${
-                      isDarkMode ? 'border-gray-600 bg-gray-700' : 'border-gray-300 bg-gray-50'
-                    }`}>
-                      {/* Provider Header - Clickable */}
-                      <div 
-                        className={`p-4 cursor-pointer ${
-                          isDarkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-100'
-                        }`}
-                        onClick={() => toggleProvider(provider)}
-                      >
-                        <div className="flex justify-between items-center">
-                          <div className="flex items-center gap-3">
-                            <span className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>
-                              {isProviderExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
-                            </span>
-                            <h4 className={`font-bold text-lg ${
-                              isDarkMode ? 'text-gray-100' : 'text-gray-900'
-                            }`}>{normalizeCompanyName(provider)}</h4>
-                          </div>
-                          <div className="flex gap-4">
-                            {detailedBreakdown.sortedTaskTypes.map((taskType: string) => (
-                              <div key={taskType} className="text-center">
-                                <div className={`text-sm font-medium ${
-                                  isDarkMode ? 'text-gray-300' : 'text-gray-600'
-                                }`}>{taskType}</div>
-                                <div className={`text-lg font-bold ${
-                                  isDarkMode ? 'text-gray-100' : 'text-gray-900'
-                                }`}>{providerData[taskType] || 0}</div>
-                              </div>
-                            ))}
-                            <div className="text-center border-l pl-4 ml-4 border-gray-400">
-                              <div className={`text-sm font-medium ${
-                                isDarkMode ? 'text-gray-300' : 'text-gray-600'
-                              }`}>Total</div>
-                              <div className={`text-lg font-bold ${
-                                isDarkMode ? 'text-blue-400' : 'text-blue-600'
-                              }`}>{total}</div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* Collapsible content - Direct originators */}
-                      {isProviderExpanded && (
-                        <div className={`p-4 border-t ${
-                          isDarkMode ? 'border-gray-600' : 'border-gray-300'
-                        }`}>
-                          <div className="space-y-2">
-                            {Object.entries(originatorData)
-                              .sort((a, b) => b[1].length - a[1].length)
-                              .map(([originator, models]: [string, any[]]) => {
-                                const originatorKey = `${provider}-${originator}`;
-                                const isOriginatorExpanded = expandedOriginators.has(originatorKey);
-                                
-                                return (
-                                  <div key={originator} className={`rounded ${
-                                    isDarkMode ? 'bg-gray-600' : 'bg-gray-100'
-                                  }`}>
-                                    <div 
-                                      className={`flex justify-between items-center px-3 py-2 cursor-pointer rounded ${
-                                        isDarkMode ? 'hover:bg-gray-500' : 'hover:bg-gray-200'
-                                      }`}
-                                      onClick={() => toggleOriginator(originatorKey)}
-                                    >
-                                      <div className="flex items-center gap-2">
-                                        <span className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>
-                                          {isOriginatorExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                                        </span>
-                                        <span className={`font-medium ${
-                                          isDarkMode ? 'text-gray-100' : 'text-gray-900'
-                                        }`}>{originator}</span>
-                                      </div>
-                                      <span className={`font-semibold ${
-                                        isDarkMode ? 'text-gray-100' : 'text-gray-900'
-                                      }`}>{models.length} models</span>
-                                    </div>
-                                    
-                                    {isOriginatorExpanded && (
-                                      <div className="px-6 pb-3">
-                                        <div className="max-h-40 overflow-y-auto">
-                                          <div className="space-y-1">
-                                            {models.map((model, index) => (
-                                              <div key={index} className={`text-sm py-1 px-2 rounded ${
-                                                isDarkMode ? 'text-gray-300 bg-gray-700' : 'text-gray-700 bg-white'
-                                              }`}>
-                                                <div className="flex justify-between items-center">
-                                                  <span className="font-medium">{model.model_name}</span>
-                                                  <div className="flex items-center gap-2">
-                                                    <span className={`px-2 py-1 rounded text-xs ${
-                                                      isDarkMode ? 'bg-blue-600 text-blue-100' : 'bg-blue-100 text-blue-800'
-                                                    }`}>{model.task_type}</span>
-                                                    <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                                                  </div>
-                                                </div>
-                                              </div>
-                                            ))}
-                                          </div>
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Task type totals with dropdown */}
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <h4 className={`font-semibold ${
-                    isDarkMode ? 'text-gray-200' : 'text-gray-900'
-                  }`}>🎯 Task Type Totals:</h4>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={expandAllTaskTypes}
-                      className={`px-2 py-1 text-xs rounded transition-colors ${
-                        isDarkMode 
-                          ? 'bg-gray-600 hover:bg-gray-500 text-gray-200' 
-                          : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-                      }`}
-                    >
-                      Expand All
-                    </button>
-                    <button
-                      onClick={collapseAllTaskTypes}
-                      className={`px-2 py-1 text-xs rounded transition-colors ${
-                        isDarkMode 
-                          ? 'bg-gray-600 hover:bg-gray-500 text-gray-200' 
-                          : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-                      }`}
-                    >
-                      Collapse All
-                    </button>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  {Object.entries(detailedBreakdown.taskTypeTotals)
-                    .sort((a, b) => (b[1] as number) - (a[1] as number))
-                    .map(([taskType, count]: [string, number]) => {
-                      const isExpanded = expandedTaskTypes.has(taskType);
-                      const models = detailedBreakdown.modelsByTaskType[taskType] || [];
-                      
-                      return (
-                        <div key={taskType} className={`rounded ${
-                          isDarkMode ? 'bg-gray-700' : 'bg-gray-50'
-                        }`}>
-                          <div 
-                            className={`flex justify-between items-center px-3 py-2 cursor-pointer rounded ${
-                              isDarkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-100'
-                            }`}
-                            onClick={() => toggleTaskType(taskType)}
-                          >
-                            <div className="flex items-center gap-2">
-                              <span className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>
-                                {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                              </span>
-                              <div>
-                                <span className={`text-sm font-medium ${
-                                  isDarkMode ? 'text-gray-200' : 'text-gray-900'
-                                }`}>{formatTaskType(taskType)}:</span>
-                                <div className={`text-xs ${
-                                  isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                                }`}>{TASK_TYPE_EXPLANATIONS[taskType] || 'Specialized AI model type'}</div>
-                              </div>
-                            </div>
-                            <span className={`font-semibold text-sm ${
-                              isDarkMode ? 'text-gray-200' : 'text-gray-900'
-                            }`}>{count} models</span>
-                          </div>
-                          
-                          {isExpanded && (
-                            <div className="px-6 pb-3">
-                              <div className="max-h-40 overflow-y-auto">
-                                <div className={`grid grid-cols-12 gap-3 text-xs font-medium mb-2 px-1 ${
-                                  isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                                }`}>
-                                  <div className="col-span-5">Model Name</div>
-                                  <div className="col-span-3">Provider</div>
-                                  <div className="col-span-4">Originator</div>
-                                </div>
-                                <div className="space-y-1">
-                                  {models.map((model, index) => {
-                                    const originator = normalizeOriginator(
-                                      model.model_name?.includes('/') 
-                                        ? model.model_name.split('/')[0] 
-                                        : model.provider || 'unknown'
-                                    );
-                                    
-                                    return (
-                                      <div key={index} className={`text-xs grid grid-cols-12 gap-3 py-1 ${
-                                        isDarkMode ? 'text-gray-300' : 'text-gray-600'
-                                      }`}>
-                                        <span className="col-span-5 truncate">{model.model_name}</span>
-                                        <span className={`col-span-3 font-medium ${
-                                          isDarkMode ? 'text-blue-400' : 'text-blue-600'
-                                        }`}>{normalizeCompanyName(model.provider)}</span>
-                                        <span className={`col-span-4 font-medium truncate ${
-                                          isDarkMode ? 'text-purple-400' : 'text-purple-600'
-                                        }`}>{originator}</span>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                </div>
-              </div>
-            </div>
-          )}
+          </div>
         </div>
 
         {/* Status Notice */}
