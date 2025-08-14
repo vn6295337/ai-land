@@ -15,18 +15,32 @@ const AiModelsVisualization = () => {
 
   // Use shared Supabase client instance (with fallbacks for Lovable deployment)
 
-  // Task types mapping - same as Python version
-  const OTHER_TASK_TYPES_MAPPING = {
-    'image': 'others',
-    'moderation': 'others',
-    'audio': 'others',
-    'embedding': 'others',
-    'rerank': 'others',
-    'language': 'others',
-    'transcribe': 'others',
-    'asr': 'Automatic Speech Recognition',
-    'tts': 'Text-to-Speech',
-    'chat': 'Conversational Chat'
+  // Task types mapping with explanations
+  const TASK_TYPE_MAPPING = {
+    'others': 'embedding',
+    'chat': 'conversational'
+  };
+
+  const TASK_TYPE_EXPLANATIONS = {
+    'conversational': 'Chat and dialogue models for interactive conversations',
+    'text_generation': 'General language models for text completion and generation', 
+    'code_generation': 'Specialized models for programming and code tasks',
+    'multimodal': 'Models that process both text and images/video',
+    'embedding': 'Models that convert text into numerical representations',
+    'fill_mask': 'Models that predict missing words in sentences',
+    'text2text_generation': 'Models for structured text transformation tasks',
+    'image': 'Models that process and generate images',
+    'moderation': 'Models for content moderation and safety',
+    'audio': 'Models that process and generate audio',
+    'rerank': 'Models that rerank and optimize search results',
+    'language': 'Language detection and processing models',
+    'transcribe': 'Speech-to-text transcription models',
+    'asr': 'Automatic speech recognition models',
+    'tts': 'Text-to-speech synthesis models'
+  };
+
+  const formatTaskType = (taskType: string): string => {
+    return taskType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
   // Professional color palette
@@ -61,12 +75,39 @@ const AiModelsVisualization = () => {
     }
   };
 
+  const normalizeCompanyName = (name: string): string => {
+    // Official company names mapping
+    const companyMapping: Record<string, string> = {
+      'meta-llama': 'Meta',
+      'mistralai': 'Mistral', 
+      'google-bert': 'Google',
+      'google-t5': 'Google',
+      'openai': 'OpenAI',
+      'nvidia': 'NVIDIA',
+      'microsoft': 'Microsoft',
+      'anthropic': 'Anthropic',
+      'cohere': 'Cohere',
+      'together': 'Together AI',
+      'huggingface': 'Hugging Face',
+      'openrouter': 'OpenRouter',
+      'google': 'Google',
+      'mistral': 'Mistral',
+      'meta': 'Meta'
+    };
+    
+    return companyMapping[name.toLowerCase()] || name.charAt(0).toUpperCase() + name.slice(1);
+  };
+
+  const normalizeOriginator = (originator: string): string => {
+    return normalizeCompanyName(originator);
+  };
+
   const processData = (rawData: any[]) => {
-    // Apply task type mapping
+    // Apply task type mapping and normalize originators
     const processedData = rawData.map(item => ({
       ...item,
-      task_type: OTHER_TASK_TYPES_MAPPING[item.task_type as keyof typeof OTHER_TASK_TYPES_MAPPING] || item.task_type,
-      model_originator: item.model_originator || item.provider || 'unknown'
+      task_type: TASK_TYPE_MAPPING[item.task_type as keyof typeof TASK_TYPE_MAPPING] || item.task_type,
+      model_originator: normalizeOriginator(item.model_originator || item.provider || 'unknown')
     }));
 
     // Group by provider and task_type
@@ -399,7 +440,7 @@ const AiModelsVisualization = () => {
                             </span>
                             <h4 className={`font-bold text-lg ${
                               isDarkMode ? 'text-gray-100' : 'text-gray-900'
-                            }`}>{provider}</h4>
+                            }`}>{normalizeCompanyName(provider)}</h4>
                           </div>
                           <div className="flex gap-4">
                             {detailedBreakdown.sortedTaskTypes.map((taskType: string) => (
@@ -519,9 +560,14 @@ const AiModelsVisualization = () => {
                               <span className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>
                                 {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                               </span>
-                              <span className={`text-sm font-medium ${
-                                isDarkMode ? 'text-gray-200' : 'text-gray-900'
-                              }`}>{taskType}:</span>
+                              <div>
+                                <span className={`text-sm font-medium ${
+                                  isDarkMode ? 'text-gray-200' : 'text-gray-900'
+                                }`}>{formatTaskType(taskType)}:</span>
+                                <div className={`text-xs ${
+                                  isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                                }`}>{TASK_TYPE_EXPLANATIONS[taskType] || 'Specialized AI model type'}</div>
+                              </div>
                             </div>
                             <span className={`font-semibold text-sm ${
                               isDarkMode ? 'text-gray-200' : 'text-gray-900'
@@ -534,31 +580,26 @@ const AiModelsVisualization = () => {
                                 <div className={`grid grid-cols-12 gap-2 text-xs font-medium mb-2 px-1 ${
                                   isDarkMode ? 'text-gray-400' : 'text-gray-500'
                                 }`}>
-                                  <div className="col-span-5">Model Name</div>
-                                  <div className="col-span-2">Provider</div>
-                                  <div className="col-span-2">Status</div>
+                                  <div className="col-span-6">Model Name</div>
+                                  <div className="col-span-3">Provider</div>
                                   <div className="col-span-3">Originator</div>
                                 </div>
                                 <div className="space-y-1">
                                   {models.map((model, index) => {
-                                    const originator = model.model_name?.includes('/') 
-                                      ? model.model_name.split('/')[0] 
-                                      : model.provider || 'unknown';
+                                    const originator = normalizeOriginator(
+                                      model.model_name?.includes('/') 
+                                        ? model.model_name.split('/')[0] 
+                                        : model.provider || 'unknown'
+                                    );
                                     
                                     return (
                                       <div key={index} className={`text-xs grid grid-cols-12 gap-2 py-1 ${
                                         isDarkMode ? 'text-gray-300' : 'text-gray-600'
                                       }`}>
-                                        <span className="col-span-5 truncate">{model.model_name}</span>
-                                        <span className={`col-span-2 font-medium ${
+                                        <span className="col-span-6 truncate">{model.model_name}</span>
+                                        <span className={`col-span-3 font-medium ${
                                           isDarkMode ? 'text-blue-400' : 'text-blue-600'
-                                        }`}>{model.provider}</span>
-                                        <div className="col-span-2 flex items-center gap-1">
-                                          <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                                          <span className={`font-medium ${
-                                            isDarkMode ? 'text-green-400' : 'text-green-700'
-                                          }`}>{model.status || 'stable'}</span>
-                                        </div>
+                                        }`}>{normalizeCompanyName(model.provider)}</span>
                                         <span className={`col-span-3 font-medium truncate ${
                                           isDarkMode ? 'text-purple-400' : 'text-purple-600'
                                         }`}>{originator}</span>
