@@ -22,21 +22,21 @@ const AiModelsVisualization = () => {
   };
 
   const TASK_TYPE_EXPLANATIONS = {
-    'conversational': 'Chat and dialogue models for interactive conversations',
-    'text_generation': 'General language models for text completion and generation', 
-    'code_generation': 'Specialized models for programming and code tasks',
-    'multimodal': 'Models that process both text and images/video',
-    'embedding': 'Models that convert text into numerical representations',
-    'fill_mask': 'Models that predict missing words in sentences',
-    'text2text_generation': 'Models for structured text transformation tasks',
-    'image': 'Models that process and generate images',
-    'moderation': 'Models for content moderation and safety',
-    'audio': 'Models that process and generate audio',
-    'rerank': 'Models that rerank and optimize search results',
-    'language': 'Language detection and processing models',
-    'transcribe': 'Speech-to-text transcription models',
-    'asr': 'Automatic speech recognition models',
-    'tts': 'Text-to-speech synthesis models'
+    'conversational': 'Interactive conversations',
+    'text_generation': 'Text completion and generation', 
+    'code_generation': 'Specialized for coding tasks',
+    'multimodal': 'Processes text and images',
+    'embedding': 'Convert texts into numerical representations',
+    'fill_mask': 'Predicts missing words',
+    'text2text_generation': 'Structured text transformation',
+    'image': 'Image processing',
+    'moderation': 'Content safety',
+    'audio': 'Audio processing',
+    'rerank': 'Search optimization',
+    'language': 'Language detection',
+    'transcribe': 'Speech to text',
+    'asr': 'Speech recognition',
+    'tts': 'Text to speech'
   };
 
   const formatTaskType = (taskType: string): string => {
@@ -280,6 +280,28 @@ const AiModelsVisualization = () => {
     setExpandedOriginators(newExpanded);
   };
 
+  const expandAllTaskTypes = () => {
+    if (detailedBreakdown) {
+      const allTaskTypes = new Set(Object.keys(detailedBreakdown.taskTypeTotals));
+      setExpandedTaskTypes(allTaskTypes);
+    }
+  };
+
+  const collapseAllTaskTypes = () => {
+    setExpandedTaskTypes(new Set());
+  };
+
+  const expandAllProviders = () => {
+    if (detailedBreakdown) {
+      const allProviders = new Set(detailedBreakdown.sortedProviders);
+      setExpandedProviders(allProviders);
+    }
+  };
+
+  const collapseAllProviders = () => {
+    setExpandedProviders(new Set());
+  };
+
 
   if (loading) {
     return (
@@ -410,9 +432,33 @@ const AiModelsVisualization = () => {
             <div className={`p-6 rounded-lg shadow-lg ${
               isDarkMode ? 'bg-gray-800' : 'bg-white'
             }`}>
-              <h3 className={`text-lg font-bold mb-4 ${
-                isDarkMode ? 'text-gray-100' : 'text-gray-900'
-              }`}>📋 Detailed Breakdown by Provider and Task Type</h3>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className={`text-lg font-bold ${
+                  isDarkMode ? 'text-gray-100' : 'text-gray-900'
+                }`}>📋 Detailed Breakdown by Provider and Task Type</h3>
+                <div className="flex gap-2">
+                  <button
+                    onClick={expandAllProviders}
+                    className={`px-2 py-1 text-xs rounded transition-colors ${
+                      isDarkMode 
+                        ? 'bg-gray-600 hover:bg-gray-500 text-gray-200' 
+                        : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+                    }`}
+                  >
+                    Expand All
+                  </button>
+                  <button
+                    onClick={collapseAllProviders}
+                    className={`px-2 py-1 text-xs rounded transition-colors ${
+                      isDarkMode 
+                        ? 'bg-gray-600 hover:bg-gray-500 text-gray-200' 
+                        : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+                    }`}
+                  >
+                    Collapse All
+                  </button>
+                </div>
+              </div>
               
               {/* Provider breakdown with collapsible providers */}
               <div className="space-y-4 mb-6">
@@ -536,9 +582,33 @@ const AiModelsVisualization = () => {
 
               {/* Task type totals with dropdown */}
               <div>
-                <h4 className={`font-semibold mb-2 ${
-                  isDarkMode ? 'text-gray-200' : 'text-gray-900'
-                }`}>🎯 Task Type Totals:</h4>
+                <div className="flex justify-between items-center mb-2">
+                  <h4 className={`font-semibold ${
+                    isDarkMode ? 'text-gray-200' : 'text-gray-900'
+                  }`}>🎯 Task Type Totals:</h4>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={expandAllTaskTypes}
+                      className={`px-2 py-1 text-xs rounded transition-colors ${
+                        isDarkMode 
+                          ? 'bg-gray-600 hover:bg-gray-500 text-gray-200' 
+                          : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+                      }`}
+                    >
+                      Expand All
+                    </button>
+                    <button
+                      onClick={collapseAllTaskTypes}
+                      className={`px-2 py-1 text-xs rounded transition-colors ${
+                        isDarkMode 
+                          ? 'bg-gray-600 hover:bg-gray-500 text-gray-200' 
+                          : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+                      }`}
+                    >
+                      Collapse All
+                    </button>
+                  </div>
+                </div>
                 <div className="space-y-2">
                   {Object.entries(detailedBreakdown.taskTypeTotals)
                     .sort((a, b) => (b[1] as number) - (a[1] as number))
@@ -577,12 +647,12 @@ const AiModelsVisualization = () => {
                           {isExpanded && (
                             <div className="px-6 pb-3">
                               <div className="max-h-40 overflow-y-auto">
-                                <div className={`grid grid-cols-12 gap-2 text-xs font-medium mb-2 px-1 ${
+                                <div className={`grid grid-cols-12 gap-3 text-xs font-medium mb-2 px-1 ${
                                   isDarkMode ? 'text-gray-400' : 'text-gray-500'
                                 }`}>
-                                  <div className="col-span-6">Model Name</div>
+                                  <div className="col-span-5">Model Name</div>
                                   <div className="col-span-3">Provider</div>
-                                  <div className="col-span-3">Originator</div>
+                                  <div className="col-span-4">Originator</div>
                                 </div>
                                 <div className="space-y-1">
                                   {models.map((model, index) => {
@@ -593,14 +663,14 @@ const AiModelsVisualization = () => {
                                     );
                                     
                                     return (
-                                      <div key={index} className={`text-xs grid grid-cols-12 gap-2 py-1 ${
+                                      <div key={index} className={`text-xs grid grid-cols-12 gap-3 py-1 ${
                                         isDarkMode ? 'text-gray-300' : 'text-gray-600'
                                       }`}>
-                                        <span className="col-span-6 truncate">{model.model_name}</span>
+                                        <span className="col-span-5 truncate">{model.model_name}</span>
                                         <span className={`col-span-3 font-medium ${
                                           isDarkMode ? 'text-blue-400' : 'text-blue-600'
                                         }`}>{normalizeCompanyName(model.provider)}</span>
-                                        <span className={`col-span-3 font-medium truncate ${
+                                        <span className={`col-span-4 font-medium truncate ${
                                           isDarkMode ? 'text-purple-400' : 'text-purple-600'
                                         }`}>{originator}</span>
                                       </div>
