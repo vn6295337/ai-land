@@ -1,12 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { ChevronDown, ChevronRight, ExternalLink } from 'lucide-react';
+import { ChevronDown, ChevronRight, ExternalLink, Filter, X } from 'lucide-react';
 
 const AiModelsVisualization = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    inferenceProvider: '',
+    modelProvider: '', 
+    modelName: '',
+    modelType: '',
+    license: '',
+    rateLimits: ''
+  });
 
   // Use shared Supabase client instance (with fallbacks for Lovable deployment)
 
@@ -201,6 +210,25 @@ const AiModelsVisualization = () => {
 
   const [models, setModels] = useState<any[]>([]);
 
+  // Filter models based on current filter settings
+  const filteredModels = models.filter(model => {
+    const inferenceProvider = normalizeCompanyName(model.provider).toLowerCase();
+    const modelProvider = normalizeOriginator(model.model_originator || model.provider || 'unknown').toLowerCase();
+    const modelName = model.model_name.toLowerCase();
+    const modelType = formatTaskType(model.task_type).toLowerCase();
+    const license = (model.license || 'N/A').toLowerCase();
+    const rateLimits = (model.rate_limits || 'N/A').toLowerCase();
+
+    return (
+      inferenceProvider.includes(filters.inferenceProvider.toLowerCase()) &&
+      modelProvider.includes(filters.modelProvider.toLowerCase()) &&
+      modelName.includes(filters.modelName.toLowerCase()) &&
+      modelType.includes(filters.modelType.toLowerCase()) &&
+      license.includes(filters.license.toLowerCase()) &&
+      rateLimits.includes(filters.rateLimits.toLowerCase())
+    );
+  });
+
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -300,19 +328,6 @@ const AiModelsVisualization = () => {
           }`}>
             Interactive tracker of API-accessible and publicly available models
           </p>
-          <div className="mt-4">
-            <a 
-              href="/executive"
-              className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                isDarkMode 
-                  ? 'bg-[#38BDF8] hover:bg-[#0EA5E9] text-black' 
-                  : 'bg-blue-600 hover:bg-blue-700 text-white'
-              }`}
-            >
-              Executive Dashboard
-              <ExternalLink className="w-4 h-4" />
-            </a>
-          </div>
         </div>
 
         <div className="flex-1 space-y-4">
@@ -322,6 +337,163 @@ const AiModelsVisualization = () => {
           }`}>
             Last updated: {lastRefresh.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })} UTC • Auto-refreshes every 5 minutes
           </p>
+
+          {/* Filters Section */}
+          <div className={`p-4 rounded-lg shadow-lg ${
+            isDarkMode ? 'bg-gray-800' : 'bg-white'
+          }`}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className={`text-lg font-semibold ${
+                isDarkMode ? 'text-gray-100' : 'text-gray-900'
+              }`}>Filters</h3>
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className={`inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                  isDarkMode 
+                    ? 'bg-gray-600 hover:bg-gray-500 text-gray-200' 
+                    : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+                }`}
+              >
+                <Filter className="w-4 h-4" />
+                {showFilters ? 'Hide' : 'Show'} Filters
+                {showFilters ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+              </button>
+            </div>
+            
+            {showFilters && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                  <label className={`block text-sm font-medium mb-1 ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>Inference Provider</label>
+                  <input
+                    type="text"
+                    placeholder="Filter by inference provider..."
+                    value={filters.inferenceProvider}
+                    onChange={(e) => setFilters(prev => ({ ...prev, inferenceProvider: e.target.value }))}
+                    className={`w-full px-3 py-2 text-sm rounded-md border transition-colors ${
+                      isDarkMode 
+                        ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' 
+                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                    }`}
+                  />
+                </div>
+                
+                <div>
+                  <label className={`block text-sm font-medium mb-1 ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>Model Provider</label>
+                  <input
+                    type="text"
+                    placeholder="Filter by model provider..."
+                    value={filters.modelProvider}
+                    onChange={(e) => setFilters(prev => ({ ...prev, modelProvider: e.target.value }))}
+                    className={`w-full px-3 py-2 text-sm rounded-md border transition-colors ${
+                      isDarkMode 
+                        ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' 
+                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                    }`}
+                  />
+                </div>
+
+                <div>
+                  <label className={`block text-sm font-medium mb-1 ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>Model Name</label>
+                  <input
+                    type="text"
+                    placeholder="Filter by model name..."
+                    value={filters.modelName}
+                    onChange={(e) => setFilters(prev => ({ ...prev, modelName: e.target.value }))}
+                    className={`w-full px-3 py-2 text-sm rounded-md border transition-colors ${
+                      isDarkMode 
+                        ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' 
+                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                    }`}
+                  />
+                </div>
+
+                <div>
+                  <label className={`block text-sm font-medium mb-1 ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>Model Type</label>
+                  <input
+                    type="text"
+                    placeholder="Filter by model type..."
+                    value={filters.modelType}
+                    onChange={(e) => setFilters(prev => ({ ...prev, modelType: e.target.value }))}
+                    className={`w-full px-3 py-2 text-sm rounded-md border transition-colors ${
+                      isDarkMode 
+                        ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' 
+                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                    }`}
+                  />
+                </div>
+
+                <div>
+                  <label className={`block text-sm font-medium mb-1 ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>License</label>
+                  <input
+                    type="text"
+                    placeholder="Filter by license..."
+                    value={filters.license}
+                    onChange={(e) => setFilters(prev => ({ ...prev, license: e.target.value }))}
+                    className={`w-full px-3 py-2 text-sm rounded-md border transition-colors ${
+                      isDarkMode 
+                        ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' 
+                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                    }`}
+                  />
+                </div>
+
+                <div>
+                  <label className={`block text-sm font-medium mb-1 ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>Rate Limits</label>
+                  <input
+                    type="text"
+                    placeholder="Filter by rate limits..."
+                    value={filters.rateLimits}
+                    onChange={(e) => setFilters(prev => ({ ...prev, rateLimits: e.target.value }))}
+                    className={`w-full px-3 py-2 text-sm rounded-md border transition-colors ${
+                      isDarkMode 
+                        ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' 
+                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                    }`}
+                  />
+                </div>
+              </div>
+            )}
+
+            {(filters.inferenceProvider || filters.modelProvider || filters.modelName || filters.modelType || filters.license || filters.rateLimits) && (
+              <div className="mt-4 flex justify-between items-center">
+                <span className={`text-sm ${
+                  isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                }`}>
+                  Showing {filteredModels.length} of {models.length} models
+                </span>
+                <button
+                  onClick={() => setFilters({
+                    inferenceProvider: '',
+                    modelProvider: '', 
+                    modelName: '',
+                    modelType: '',
+                    license: '',
+                    rateLimits: ''
+                  })}
+                  className={`inline-flex items-center gap-2 px-3 py-1 text-sm rounded-md transition-colors ${
+                    isDarkMode 
+                      ? 'bg-red-600 hover:bg-red-500 text-white' 
+                      : 'bg-red-600 hover:bg-red-700 text-white'
+                  }`}
+                >
+                  <X className="w-4 h-4" />
+                  Clear All Filters
+                </button>
+              </div>
+            )}
+          </div>
 
           {/* Simple Structured Table */}
           <div className={`p-6 rounded-lg shadow-lg ${
@@ -350,21 +522,13 @@ const AiModelsVisualization = () => {
                     }`}>License</th>
                     <th className={`text-left py-3 px-4 font-semibold ${
                       isDarkMode ? 'text-gray-200' : 'text-gray-900'
-                    }`}>Pricing</th>
-                    <th className={`text-left py-3 px-4 font-semibold ${
-                      isDarkMode ? 'text-gray-200' : 'text-gray-900'
-                    }`}>Last Updated</th>
-                    <th className={`text-left py-3 px-4 font-semibold ${
-                      isDarkMode ? 'text-gray-200' : 'text-gray-900'
                     }`}>Rate Limits</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {models.map((model, index) => {
-                    // If provider and model_originator are same, show only provider
+                  {filteredModels.map((model, index) => {
                     const modelProvider = normalizeOriginator(model.model_originator || model.provider || 'unknown');
                     const inferenceProvider = normalizeCompanyName(model.provider);
-                    const displayModelProvider = (modelProvider === inferenceProvider) ? '' : modelProvider;
                     
                     return (
                       <tr key={index} className={`border-b ${
@@ -375,7 +539,7 @@ const AiModelsVisualization = () => {
                         }`}>{inferenceProvider}</td>
                         <td className={`py-3 px-4 text-sm ${
                           isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                        }`}>{displayModelProvider}</td>
+                        }`}>{modelProvider}</td>
                         <td className={`py-3 px-4 text-sm font-medium ${
                           isDarkMode ? 'text-gray-100' : 'text-gray-900'
                         }`}>{model.model_name}</td>
@@ -385,14 +549,6 @@ const AiModelsVisualization = () => {
                         <td className={`py-3 px-4 text-sm ${
                           isDarkMode ? 'text-gray-300' : 'text-gray-700'
                         }`}>{model.license || 'N/A'}</td>
-                        <td className={`py-3 px-4 text-sm ${
-                          model.pricing?.toLowerCase().includes('free') 
-                            ? 'text-green-600 font-medium' 
-                            : isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                        }`}>{model.pricing || 'N/A'}</td>
-                        <td className={`py-3 px-4 text-sm ${
-                          isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                        }`}>{model.last_updated || model.updated_at || 'N/A'}</td>
                         <td className={`py-3 px-4 text-sm ${
                           isDarkMode ? 'text-gray-300' : 'text-gray-700'
                         }`}>{model.rate_limits || 'N/A'}</td>
