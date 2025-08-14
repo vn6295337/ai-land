@@ -260,7 +260,7 @@ const AiModelsVisualization = () => {
     return Array.from(values).sort();
   };
 
-  // Filter models based on column filters
+  // Filter models based on column filters and exclude Together AI priced models
   const filteredModels = models.filter(model => {
     const inferenceProvider = normalizeCompanyName(model.provider);
     const modelProvider = normalizeOriginator(model.model_originator || model.provider || 'unknown');
@@ -268,6 +268,11 @@ const AiModelsVisualization = () => {
     const modelType = formatTaskType(model.task_type);
     const license = model.license || 'N/A';
     const rateLimits = model.rate_limits || 'N/A';
+
+    // Exclude Together AI priced models
+    if (inferenceProvider === 'Together AI' && model.pricing && model.pricing.includes('$')) {
+      return false;
+    }
 
     return (
       (columnFilters.inferenceProvider.size === 0 || columnFilters.inferenceProvider.has(inferenceProvider)) &&
@@ -585,6 +590,60 @@ const AiModelsVisualization = () => {
                 </div>
               </div>
             )}
+            
+            {/* Model Count */}
+            <div className={`mt-4 text-center text-sm ${
+              isDarkMode ? 'text-gray-400' : 'text-gray-600'
+            }`}>
+              Total Models: {filteredModels.length}
+            </div>
+
+            {/* License Explanations */}
+            <div className={`mt-6 p-4 rounded-lg ${
+              isDarkMode ? 'bg-gray-700' : 'bg-gray-100'
+            }`}>
+              <h4 className={`font-semibold mb-3 ${
+                isDarkMode ? 'text-gray-200' : 'text-gray-800'
+              }`}>📄 License Types Explained</h4>
+              <div className="grid md:grid-cols-2 gap-3 text-sm">
+                <div>
+                  <strong className={isDarkMode ? 'text-gray-200' : 'text-gray-800'}>MIT:</strong>
+                  <span className={`ml-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                    Permissive license allowing commercial use with attribution
+                  </span>
+                </div>
+                <div>
+                  <strong className={isDarkMode ? 'text-gray-200' : 'text-gray-800'}>Apache-2.0:</strong>
+                  <span className={`ml-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                    Commercial-friendly with patent protection
+                  </span>
+                </div>
+                <div>
+                  <strong className={isDarkMode ? 'text-gray-200' : 'text-gray-800'}>Llama2/Llama3.1:</strong>
+                  <span className={`ml-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                    Custom license permitting commercial use under certain conditions
+                  </span>
+                </div>
+                <div>
+                  <strong className={isDarkMode ? 'text-gray-200' : 'text-gray-800'}>Proprietary:</strong>
+                  <span className={`ml-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                    Provider's own terms - check individual agreements
+                  </span>
+                </div>
+              </div>
+              
+              {/* Caveats */}
+              <div className={`mt-4 p-3 rounded-lg border-l-4 ${
+                isDarkMode 
+                  ? 'bg-orange-900 border-orange-500 text-orange-200' 
+                  : 'bg-orange-50 border-orange-500 text-orange-800'
+              }`}>
+                <p className="text-sm">
+                  <strong>⚠️ Important:</strong> All free models come with usage restrictions such as rate limits, 
+                  daily quotas, or require API keys. Always verify current terms with providers before production use.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 
