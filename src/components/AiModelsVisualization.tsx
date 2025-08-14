@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, ExternalLink } from 'lucide-react';
 
 const AiModelsVisualization = () => {
   const [loading, setLoading] = useState(true);
@@ -303,6 +303,19 @@ const AiModelsVisualization = () => {
           }`}>
             Interactive tracker of API-accessible and publicly available models
           </p>
+          <div className="mt-4">
+            <a 
+              href="/executive"
+              className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                isDarkMode 
+                  ? 'bg-[#38BDF8] hover:bg-[#0EA5E9] text-black' 
+                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+              }`}
+            >
+              Executive Dashboard
+              <ExternalLink className="w-4 h-4" />
+            </a>
+          </div>
         </div>
 
         <div className="flex-1 space-y-4">
