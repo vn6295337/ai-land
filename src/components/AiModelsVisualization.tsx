@@ -210,10 +210,30 @@ const AiModelsVisualization = () => {
 
   const [models, setModels] = useState<any[]>([]);
 
-  // Get unique values for each column
+  // Get unique values for each column based on current filters (relational filtering)
   const getUniqueValues = (columnKey: keyof typeof columnFilters) => {
     const values = new Set<string>();
-    models.forEach(model => {
+    
+    // Get data that matches all OTHER filters (excluding the current column being filtered)
+    const relevantData = models.filter(model => {
+      const inferenceProvider = normalizeCompanyName(model.provider);
+      const modelProvider = normalizeOriginator(model.model_originator || model.provider || 'unknown');
+      const modelName = model.model_name;
+      const modelType = formatTaskType(model.task_type);
+      const license = model.license || 'N/A';
+      const rateLimits = model.rate_limits || 'N/A';
+
+      return (
+        (columnKey === 'inferenceProvider' || columnFilters.inferenceProvider.size === 0 || columnFilters.inferenceProvider.has(inferenceProvider)) &&
+        (columnKey === 'modelProvider' || columnFilters.modelProvider.size === 0 || columnFilters.modelProvider.has(modelProvider)) &&
+        (columnKey === 'modelName' || columnFilters.modelName.size === 0 || columnFilters.modelName.has(modelName)) &&
+        (columnKey === 'modelType' || columnFilters.modelType.size === 0 || columnFilters.modelType.has(modelType)) &&
+        (columnKey === 'license' || columnFilters.license.size === 0 || columnFilters.license.has(license)) &&
+        (columnKey === 'rateLimits' || columnFilters.rateLimits.size === 0 || columnFilters.rateLimits.has(rateLimits))
+      );
+    });
+
+    relevantData.forEach(model => {
       let value = '';
       switch(columnKey) {
         case 'inferenceProvider':
@@ -409,7 +429,7 @@ const AiModelsVisualization = () => {
           <div className={`p-6 rounded-lg shadow-lg ${
             isDarkMode ? 'bg-gray-800' : 'bg-white'
           }`}>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto min-h-[400px]">
               <table className="w-full border-collapse">
                 <thead>
                   <tr className={`border-b ${
@@ -441,7 +461,9 @@ const AiModelsVisualization = () => {
                             </button>
                             
                             {openFilter === column.key && (
-                              <div className={`filter-dropdown absolute top-full right-0 mt-1 w-64 max-h-80 overflow-y-auto ${
+                              <div className={`filter-dropdown absolute top-full ${
+                                ['inferenceProvider', 'modelProvider'].includes(column.key) ? 'left-0' : 'right-0'
+                              } mt-1 w-64 max-h-80 overflow-y-auto ${
                                 isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'
                               } border rounded-lg shadow-lg z-50`}>
                                 <div className="p-2">
@@ -518,7 +540,51 @@ const AiModelsVisualization = () => {
                   })}
                 </tbody>
               </table>
+              
+              {filteredModels.length === 0 && models.length > 0 && (
+                <div className={`flex items-center justify-center py-12 ${
+                  isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                }`}>
+                  <div className="text-center">
+                    <Filter className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p className="text-lg font-medium">No models match the current filters</p>
+                    <p className="text-sm mt-2">Try adjusting or clearing some filters to see results</p>
+                  </div>
+                </div>
+              )}
             </div>
+            
+            {/* Filter summary */}
+            {Object.values(columnFilters).some(set => set.size > 0) && (
+              <div className={`mt-4 p-3 rounded-lg border-l-4 ${
+                isDarkMode 
+                  ? 'bg-blue-900 border-blue-500 text-blue-200' 
+                  : 'bg-blue-50 border-blue-500 text-blue-800'
+              }`}>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm">
+                    Showing {filteredModels.length} of {models.length} models with active filters
+                  </span>
+                  <button
+                    onClick={() => setColumnFilters({
+                      inferenceProvider: new Set<string>(),
+                      modelProvider: new Set<string>(),
+                      modelName: new Set<string>(),
+                      modelType: new Set<string>(),
+                      license: new Set<string>(),
+                      rateLimits: new Set<string>()
+                    })}
+                    className={`text-xs px-3 py-1 rounded-md transition-colors ${
+                      isDarkMode 
+                        ? 'bg-red-600 hover:bg-red-500 text-white' 
+                        : 'bg-red-600 hover:bg-red-700 text-white'
+                    }`}
+                  >
+                    Clear All Filters
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
