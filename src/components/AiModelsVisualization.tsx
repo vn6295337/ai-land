@@ -143,30 +143,29 @@ const AiModelsVisualization = () => {
       colorMapping[taskType] = COLORS[index % COLORS.length];
     });
 
-    // Create treemap data structure
-    const treemapData = sortedProviders.map((provider: string, providerIndex: number) => {
+    // Create simple flat structure for treemap - each provider/task combination gets one cell
+    const treemapData: any[] = [];
+    
+    sortedProviders.forEach((provider: string, providerIndex: number) => {
       const providerData = grouped[provider];
       const total = providerTotals[provider];
       
-      // Get task types for this provider and sort by count
-      const taskTypes = Object.entries(providerData)
+      // Add cells for each task type in this provider
+      Object.entries(providerData)
         .filter(([_, count]) => (count as number) > 0)
-        .sort(([, a], [, b]) => (b as number) - (a as number))
-        .map(([taskType, count]) => ({
-          name: taskType,
-          size: count as number,
-          fill: colorMapping[taskType] || COLORS[0],
-          taskType: taskType
-        }));
-
-      return {
-        name: provider,
-        size: total,
-        children: taskTypes,
-        fill: COLORS[providerIndex % COLORS.length],
-        total: total
-      };
+        .forEach(([taskType, count]) => {
+          treemapData.push({
+            name: `${provider} - ${taskType}`,
+            provider: provider,
+            taskType: taskType,
+            size: count as number,
+            fill: colorMapping[taskType] || COLORS[0]
+          });
+        });
     });
+
+    // Sort by size descending for better visualization
+    treemapData.sort((a, b) => b.size - a.size);
 
     return {
       data: treemapData,
@@ -236,95 +235,62 @@ const AiModelsVisualization = () => {
     setExpandedTaskTypes(newExpanded);
   };
 
-  // Custom treemap cell component
+  // Simple treemap cell component
   const CustomTreemapCell = (props: any) => {
-    const { root, depth, x, y, width, height, index, payload, colors } = props;
+    const { x, y, width, height, payload } = props;
     
-    if (depth === 1) {
-      // Provider level - show provider name and total
-      return (
-        <g>
-          <rect
-            x={x}
-            y={y}
-            width={width}
-            height={height}
-            style={{
-              fill: payload.fill,
-              stroke: isDarkMode ? '#374151' : '#FFFFFF',
-              strokeWidth: 2,
-              strokeOpacity: 1
-            }}
-          />
-          <text
-            x={x + width / 2}
-            y={y + height / 2 - 10}
-            textAnchor="middle"
-            fill={isDarkMode ? '#F9FAFB' : '#000000'}
-            fontSize="14"
-            fontWeight="bold"
-          >
-            {payload.name}
-          </text>
-          <text
-            x={x + width / 2}
-            y={y + height / 2 + 10}
-            textAnchor="middle"
-            fill={isDarkMode ? '#E5E7EB' : '#374151'}
-            fontSize="12"
-          >
-            {payload.total} models
-          </text>
-        </g>
-      );
+    // Only render if we have valid dimensions
+    if (!width || !height || width < 5 || height < 5) {
+      return null;
     }
     
-    if (depth === 2) {
-      // Task type level - show task type and count
-      const showText = width > 60 && height > 30; // Only show text if cell is large enough
-      
-      return (
-        <g>
-          <rect
-            x={x}
-            y={y}
-            width={width}
-            height={height}
-            style={{
-              fill: payload.fill,
-              stroke: isDarkMode ? '#374151' : '#FFFFFF',
-              strokeWidth: 1,
-              fillOpacity: 0.8
-            }}
-          />
-          {showText && (
-            <>
-              <text
-                x={x + width / 2}
-                y={y + height / 2 - 5}
-                textAnchor="middle"
-                fill={isDarkMode ? '#F9FAFB' : '#000000'}
-                fontSize="10"
-                fontWeight="600"
-              >
-                {payload.name}
-              </text>
-              <text
-                x={x + width / 2}
-                y={y + height / 2 + 8}
-                textAnchor="middle"
-                fill={isDarkMode ? '#E5E7EB' : '#374151'}
-                fontSize="9"
-              >
-                {payload.size}
-              </text>
-            </>
-          )}
-        </g>
-      );
-    }
-    
-    return null;
+    return (
+      <g>
+        <rect
+          x={x}
+          y={y}
+          width={width}
+          height={height}
+          fill={payload?.fill || '#4E79A7'}
+          stroke="#FFFFFF"
+          strokeWidth={1}
+          opacity={0.8}
+        />
+        {width > 60 && height > 30 && (
+          <>
+            <text
+              x={x + width / 2}
+              y={y + height / 2 - 8}
+              textAnchor="middle"
+              fill="#FFFFFF"
+              fontSize="10"
+              fontWeight="bold"
+            >
+              {payload?.provider}
+            </text>
+            <text
+              x={x + width / 2}
+              y={y + height / 2 + 4}
+              textAnchor="middle"
+              fill="#FFFFFF"
+              fontSize="8"
+            >
+              {payload?.taskType}
+            </text>
+            <text
+              x={x + width / 2}
+              y={y + height / 2 + 16}
+              textAnchor="middle"
+              fill="#FFFFFF"
+              fontSize="8"
+              fontWeight="bold"
+            >
+              {payload?.size}
+            </text>
+          </>
+        )}
+      </g>
+    );
   };
 
   // Custom tooltip for treemap
@@ -338,10 +304,9 @@ const AiModelsVisualization = () => {
             ? 'bg-gray-800 border-gray-600 text-gray-100' 
             : 'bg-white border-gray-200 text-gray-900'
         }`}>
-          <div className="font-semibold">{data.name}</div>
+          <div className="font-semibold">{data.provider}</div>
           <div className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-            {data.size} models
-            {data.taskType && ` • ${data.taskType}`}
+            {data.taskType} • {data.size} models
           </div>
         </div>
       );
