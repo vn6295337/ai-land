@@ -93,7 +93,6 @@ const AiModelsVisualization = () => {
       'anthropic': 'Anthropic',
       'cohere': 'Cohere',
       'together': 'Together AI',
-      'huggingface': 'Hugging Face',
       'openrouter': 'OpenRouter',
       'google': 'Google',
       'mistral': 'Mistral',
@@ -119,7 +118,6 @@ const AiModelsVisualization = () => {
       'Google': 'https://ai.google.dev',
       'Anthropic': 'https://console.anthropic.com',
       'Mistral': 'https://console.mistral.ai',
-      'Hugging Face': 'https://huggingface.co/pricing',
       'Cohere': 'https://cohere.com/pricing',
       'OpenRouter': 'https://openrouter.ai',
       'Together AI': 'https://api.together.xyz',
@@ -132,7 +130,7 @@ const AiModelsVisualization = () => {
       'NVIDIA': 'https://build.nvidia.com'
     };
     
-    return apiLinks[provider] || 'https://huggingface.co/pricing';
+    return apiLinks[provider] || 'https://openrouter.ai';
   };
 
   const processData = (rawData: any[]) => {
@@ -252,6 +250,11 @@ const AiModelsVisualization = () => {
       const license = model.license || 'N/A';
       const rateLimits = model.rate_limits || 'N/A';
 
+      // Exclude Hugging Face models from filter options (not free)
+      if (inferenceProvider === 'Hugging Face' || model.provider === 'huggingface') {
+        return false;
+      }
+
       // Exclude Together AI priced models from filter options
       if (inferenceProvider === 'Together AI' && model.pricing && model.pricing.includes('$')) {
         return false;
@@ -298,7 +301,7 @@ const AiModelsVisualization = () => {
     return Array.from(values).sort();
   };
 
-  // Filter models based on column filters and exclude Together AI priced models
+  // Filter models based on column filters and exclude Together AI priced models and Hugging Face
   const filteredModels = models.filter(model => {
     const inferenceProvider = normalizeCompanyName(model.provider);
     const modelProvider = normalizeOriginator(model.model_originator || model.provider || 'unknown');
@@ -306,6 +309,11 @@ const AiModelsVisualization = () => {
     const modelType = formatTaskType(model.task_type);
     const license = model.license || 'N/A';
     const rateLimits = model.rate_limits || 'N/A';
+
+    // Exclude Hugging Face models (not free)
+    if (inferenceProvider === 'Hugging Face' || model.provider === 'huggingface') {
+      return false;
+    }
 
     // Exclude Together AI priced models
     if (inferenceProvider === 'Together AI' && model.pricing && model.pricing.includes('$')) {
