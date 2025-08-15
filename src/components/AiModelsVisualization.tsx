@@ -26,6 +26,47 @@ const AiModelsVisualization = () => {
     'chat': 'conversational'
   };
 
+  // Model name to readable interpretation mapping
+  const MODEL_INTERPRETATIONS: Record<string, string> = {
+    'gemma-3-27b-it': 'Google Gemma 3 (27B) Instruction-Tuned',
+    'text-embedding-004': 'Google Text Embeddings v4',
+    'gemini-1.5-flash-8b': 'Google Gemini 1.5 Flash (8B)',
+    'gemini-1.5-flash': 'Google Gemini 1.5 Flash',
+    'gemini-2.0-flash': 'Google Gemini 2.0 Flash',
+    'gemini-2.5-pro': 'Google Gemini 2.5 Pro',
+    'gemini-2.5-flash': 'Google Gemini 2.5 Flash',
+    'meta-llama/Llama-Vision-Free': 'Meta Llama Vision',
+    'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free': 'Meta Llama 3.3 (70B) Instruct Turbo',
+    'microsoft/mai-ds-r1:free': 'Microsoft MAI Data Science R1',
+    'cognitivecomputations/dolphin3.0-mistral-24b:free': 'Dolphin 3.0 (Mistral 24B)',
+    'cognitivecomputations/dolphin3.0-r1-mistral-24b:free': 'Dolphin 3.0 R1 (Mistral 24B Enhanced)',
+    'cognitivecomputations/dolphin-mistral-24b-venice-edition:free': 'Dolphin Venice (Mistral 24B)',
+    'nousresearch/deephermes-3-llama-3-8b-preview:free': 'DeepHermes 3 (Llama 3 8B Preview)',
+    'nvidia/llama-3.1-nemotron-ultra-253b-v1:free': 'NVIDIA Nemotron Ultra (Llama 3.1 253B)',
+    'meta-llama/llama-3.1-405b-instruct:free': 'Meta Llama 3.1 (405B) Instruct',
+    'meta-llama/llama-3.2-11b-vision-instruct:free': 'Meta Llama 3.2 (11B) Vision-Instruct',
+    'meta-llama/llama-3.2-3b-instruct:free': 'Meta Llama 3.2 (3B) Instruct',
+    'meta-llama/llama-3.3-70b-instruct:free': 'Meta Llama 3.3 (70B) Instruct',
+    'google/gemma-2-9b-it:free': 'Google Gemma 2 (9B) Instruction-Tuned',
+    'google/gemini-2.0-flash-exp:free': 'Google Gemini 2.0 Flash Experimental',
+    'google/gemma-3-27b-it:free': 'Google Gemma 3 (27B) Instruction-Tuned',
+    'google/gemma-3-12b-it:free': 'Google Gemma 3 (12B) Instruction-Tuned',
+    'google/gemma-3-4b-it:free': 'Google Gemma 3 (4B) Instruction-Tuned',
+    'google/gemma-3n-e4b-it:free': 'Google Gemma 3n Enhanced (4B)',
+    'google/gemma-3n-e2b-it:free': 'Google Gemma 3n Enhanced (2B)',
+    'mistralai/mistral-7b-instruct:free': 'Mistral 7B Instruct',
+    'mistralai/mistral-nemo:free': 'Mistral NeMo',
+    'mistralai/mistral-small-24b-instruct-2501:free': 'Mistral Small 24B Instruct (v2501)',
+    'mistralai/mistral-small-3.1-24b-instruct:free': 'Mistral Small 3.1 (24B) Instruct',
+    'mistralai/devstral-small-2505:free': 'DevStral Small (v2505)',
+    'mistralai/mistral-small-3.2-24b-instruct:free': 'Mistral Small 3.2 (24B) Instruct',
+    'openai/gpt-oss-20b:free': 'OpenAI GPT-OSS (20B) Open-Weight'
+  };
+
+  const formatModelName = (modelName: string): string => {
+    return MODEL_INTERPRETATIONS[modelName] || modelName;
+  };
+
   const TASK_TYPE_EXPLANATIONS = {
     'conversational': 'Interactive conversations',
     'text_generation': 'Text completion and generation', 
@@ -252,7 +293,7 @@ const AiModelsVisualization = () => {
     const relevantData = models.filter(model => {
       const inferenceProvider = normalizeCompanyName(model.provider);
       const modelProvider = normalizeOriginator(model.model_originator || model.provider || 'unknown');
-      const modelName = model.model_name;
+      const modelName = formatModelName(model.model_name);
       const modelType = formatTaskType(model.task_type);
       const license = formatLicense(model.license, model.provider);
       const rateLimits = model.rate_limits || 'N/A';
@@ -298,7 +339,7 @@ const AiModelsVisualization = () => {
           value = normalizeOriginator(model.model_originator || model.provider || 'unknown');
           break;
         case 'modelName':
-          value = model.model_name;
+          value = formatModelName(model.model_name);
           break;
         case 'modelType':
           value = formatTaskType(model.task_type);
@@ -322,7 +363,7 @@ const AiModelsVisualization = () => {
   const filteredModels = models.filter(model => {
     const inferenceProvider = normalizeCompanyName(model.provider);
     const modelProvider = normalizeOriginator(model.model_originator || model.provider || 'unknown');
-    const modelName = model.model_name;
+    const modelName = formatModelName(model.model_name);
     const modelType = formatTaskType(model.task_type);
     const license = formatLicense(model.license, model.provider);
     const rateLimits = model.rate_limits || 'N/A';
@@ -618,7 +659,7 @@ const AiModelsVisualization = () => {
                         }`}>{modelProvider}</td>
                         <td className={`py-3 px-4 text-sm font-medium ${
                           isDarkMode ? 'text-gray-100' : 'text-gray-900'
-                        }`}>{model.model_name}</td>
+                        }`}>{formatModelName(model.model_name)}</td>
                         <td className={`py-3 px-4 text-sm ${
                           isDarkMode ? 'text-gray-300' : 'text-gray-700'
                         }`}>{formatTaskType(model.task_type)}</td>
