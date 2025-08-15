@@ -13,7 +13,8 @@ const AiModelsVisualization = () => {
     modelName: new Set<string>(),
     modelType: new Set<string>(),
     license: new Set<string>(),
-    rateLimits: new Set<string>()
+    rateLimits: new Set<string>(),
+    apiAccess: new Set<string>()
   });
   const [openFilter, setOpenFilter] = useState<string | null>(null);
 
@@ -104,6 +105,27 @@ const AiModelsVisualization = () => {
 
   const normalizeOriginator = (originator: string): string => {
     return normalizeCompanyName(originator);
+  };
+
+  const getApiAccessLink = (provider: string): string => {
+    const apiLinks: Record<string, string> = {
+      'OpenAI': 'https://platform.openai.com',
+      'Google': 'https://ai.google.dev',
+      'Anthropic': 'https://console.anthropic.com',
+      'Mistral': 'https://console.mistral.ai',
+      'Hugging Face': 'https://huggingface.co/pricing',
+      'Cohere': 'https://cohere.com/pricing',
+      'OpenRouter': 'https://openrouter.ai',
+      'Together AI': 'https://api.together.xyz',
+      'Groq': 'https://console.groq.com',
+      'Perplexity': 'https://docs.perplexity.ai',
+      'Fireworks': 'https://fireworks.ai',
+      'Replicate': 'https://replicate.com/pricing',
+      'AI21': 'https://studio.ai21.com',
+      'Anyscale': 'https://console.anyscale.com'
+    };
+    
+    return apiLinks[provider] || 'https://huggingface.co/pricing';
   };
 
   const processData = (rawData: any[]) => {
@@ -234,7 +256,8 @@ const AiModelsVisualization = () => {
         (columnKey === 'modelName' || columnFilters.modelName.size === 0 || columnFilters.modelName.has(modelName)) &&
         (columnKey === 'modelType' || columnFilters.modelType.size === 0 || columnFilters.modelType.has(modelType)) &&
         (columnKey === 'license' || columnFilters.license.size === 0 || columnFilters.license.has(license)) &&
-        (columnKey === 'rateLimits' || columnFilters.rateLimits.size === 0 || columnFilters.rateLimits.has(rateLimits))
+        (columnKey === 'rateLimits' || columnFilters.rateLimits.size === 0 || columnFilters.rateLimits.has(rateLimits)) &&
+        (columnKey === 'apiAccess' || columnFilters.apiAccess.size === 0 || columnFilters.apiAccess.has(getApiAccessLink(inferenceProvider)))
       );
     });
 
@@ -258,6 +281,9 @@ const AiModelsVisualization = () => {
           break;
         case 'rateLimits':
           value = model.rate_limits || 'N/A';
+          break;
+        case 'apiAccess':
+          value = getApiAccessLink(normalizeCompanyName(model.provider));
           break;
       }
       values.add(value);
@@ -285,7 +311,8 @@ const AiModelsVisualization = () => {
       (columnFilters.modelName.size === 0 || columnFilters.modelName.has(modelName)) &&
       (columnFilters.modelType.size === 0 || columnFilters.modelType.has(modelType)) &&
       (columnFilters.license.size === 0 || columnFilters.license.has(license)) &&
-      (columnFilters.rateLimits.size === 0 || columnFilters.rateLimits.has(rateLimits))
+      (columnFilters.rateLimits.size === 0 || columnFilters.rateLimits.has(rateLimits)) &&
+      (columnFilters.apiAccess.size === 0 || columnFilters.apiAccess.has(getApiAccessLink(inferenceProvider)))
     );
   });
 
@@ -451,7 +478,8 @@ const AiModelsVisualization = () => {
                       { key: 'modelName', label: 'Model Name' },
                       { key: 'modelType', label: 'Model Type' },
                       { key: 'license', label: 'License' },
-                      { key: 'rateLimits', label: 'Rate Limits' }
+                      { key: 'rateLimits', label: 'Rate Limits' },
+                      { key: 'apiAccess', label: 'API Access' }
                     ].map((column) => (
                       <th key={column.key} className={`text-left py-3 px-4 font-semibold relative ${
                         isDarkMode ? 'text-gray-200' : 'text-gray-900'
@@ -473,7 +501,7 @@ const AiModelsVisualization = () => {
                             {openFilter === column.key && (
                               <div className={`filter-dropdown absolute top-full ${
                                 ['inferenceProvider', 'modelProvider'].includes(column.key) ? 'left-0' : 'right-0'
-                              } mt-1 w-64 max-h-80 overflow-y-auto ${
+                              } ${column.key === 'apiAccess' ? 'right-0' : ''} mt-1 w-64 max-h-80 overflow-y-auto ${
                                 isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'
                               } border rounded-lg shadow-lg z-50`}>
                                 <div className="p-2">
@@ -545,6 +573,23 @@ const AiModelsVisualization = () => {
                         <td className={`py-3 px-4 text-sm ${
                           isDarkMode ? 'text-gray-300' : 'text-gray-700'
                         }`}>{model.rate_limits || 'N/A'}</td>
+                        <td className={`py-3 px-4 text-sm`}>
+                          <a 
+                            href={getApiAccessLink(inferenceProvider)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
+                              isDarkMode 
+                                ? 'bg-blue-600 hover:bg-blue-500 text-white' 
+                                : 'bg-blue-600 hover:bg-blue-700 text-white'
+                            }`}
+                          >
+                            API Access
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                          </a>
+                        </td>
                       </tr>
                     );
                   })}
@@ -582,7 +627,8 @@ const AiModelsVisualization = () => {
                       modelName: new Set<string>(),
                       modelType: new Set<string>(),
                       license: new Set<string>(),
-                      rateLimits: new Set<string>()
+                      rateLimits: new Set<string>(),
+                      apiAccess: new Set<string>()
                     })}
                     className={`text-xs px-3 py-1 rounded-md transition-colors ${
                       isDarkMode 
