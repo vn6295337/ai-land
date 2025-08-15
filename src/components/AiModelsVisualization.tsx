@@ -88,7 +88,6 @@ const AiModelsVisualization = () => {
       'google-bert': 'Google',
       'google-t5': 'Google',
       'openai': 'OpenAI',
-      'nvidia': 'NVIDIA',
       'microsoft': 'Microsoft',
       'anthropic': 'Anthropic',
       'cohere': 'Cohere',
@@ -127,7 +126,6 @@ const AiModelsVisualization = () => {
       'Replicate': 'https://replicate.com/pricing',
       'AI21': 'https://studio.ai21.com',
       'Anyscale': 'https://console.anyscale.com',
-      'NVIDIA': 'https://build.nvidia.com'
     };
     
     return apiLinks[provider] || 'https://openrouter.ai';
@@ -250,8 +248,13 @@ const AiModelsVisualization = () => {
       const license = model.license || 'N/A';
       const rateLimits = model.rate_limits || 'N/A';
 
-      // Exclude Hugging Face models from filter options (not free)
+      // Exclude Hugging Face models from filter options (not free - requires credits)
       if (inferenceProvider === 'Hugging Face' || model.provider === 'huggingface') {
+        return false;
+      }
+
+      // Exclude NVIDIA models from filter options (requires infrastructure/hardware)
+      if (inferenceProvider === 'NVIDIA' || model.provider === 'nvidia') {
         return false;
       }
 
@@ -301,7 +304,7 @@ const AiModelsVisualization = () => {
     return Array.from(values).sort();
   };
 
-  // Filter models based on column filters and exclude Together AI priced models and Hugging Face
+  // Filter models - exclude non-free providers and priced models
   const filteredModels = models.filter(model => {
     const inferenceProvider = normalizeCompanyName(model.provider);
     const modelProvider = normalizeOriginator(model.model_originator || model.provider || 'unknown');
@@ -310,8 +313,13 @@ const AiModelsVisualization = () => {
     const license = model.license || 'N/A';
     const rateLimits = model.rate_limits || 'N/A';
 
-    // Exclude Hugging Face models (not free)
+    // Exclude Hugging Face models (not free - requires credits)
     if (inferenceProvider === 'Hugging Face' || model.provider === 'huggingface') {
+      return false;
+    }
+
+    // Exclude NVIDIA models (requires infrastructure/hardware)
+    if (inferenceProvider === 'NVIDIA' || model.provider === 'nvidia') {
       return false;
     }
 
@@ -720,8 +728,8 @@ const AiModelsVisualization = () => {
           <p className={`text-sm ${
             isDarkMode ? 'text-blue-200' : 'text-blue-800'
           }`}>
-            ℹ️ <strong>Filter Applied:</strong> Only stable models from North American and European companies are displayed. 
-            Beta, deprecated, and active status models are filtered out to ensure production-ready options.
+            ℹ️ <strong>Filters Applied:</strong> Only truly free, hosted API models from North American and European companies are displayed. 
+            Excluded: Beta/deprecated models, services requiring infrastructure/hardware, and credit-based APIs.
           </p>
         </div>
 
