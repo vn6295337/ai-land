@@ -600,7 +600,12 @@ const AiModelsVisualization = () => {
                     
                     return (
                       <tr key={index} className={`border-b ${
-                        isDarkMode ? 'border-gray-700 hover:bg-gray-700' : 'border-gray-200 hover:bg-gray-50'
+                        isDarkMode ? 'border-gray-700' : 'border-gray-200'
+                      } ${index % 2 === 0 
+                        ? (isDarkMode ? 'bg-gray-800/50' : 'bg-gray-50/50')
+                        : (isDarkMode ? 'bg-gray-900/30' : 'bg-white')
+                      } hover:${
+                        isDarkMode ? 'bg-gray-700' : 'bg-blue-50'
                       } transition-colors`}>
                         <td className={`py-3 px-4 text-sm font-mono ${
                           isDarkMode ? 'text-gray-400' : 'text-gray-500'
@@ -623,20 +628,20 @@ const AiModelsVisualization = () => {
                         <td className={`py-3 px-4 text-sm ${
                           isDarkMode ? 'text-gray-300' : 'text-gray-700'
                         }`}>{model.rate_limits || 'N/A'}</td>
-                        <td className={`py-3 px-4 text-sm`}>
+                        <td className={`py-3 px-4 text-center`}>
                           <a 
                             href={getApiAccessLink(inferenceProvider)}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
+                            title="Get API Key"
+                            className={`inline-flex items-center justify-center w-8 h-8 rounded-full transition-colors ${
                               isDarkMode 
                                 ? 'bg-blue-600 hover:bg-blue-500 text-white' 
                                 : 'bg-blue-600 hover:bg-blue-700 text-white'
                             }`}
                           >
-                            API Access
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m0 0a2 2 0 012 2 2 2 0 01-2 2m-2-2h.01M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
                           </a>
                         </td>
@@ -728,7 +733,7 @@ const AiModelsVisualization = () => {
                 <div>
                   <a href="https://github.com/meta-llama/llama-models/blob/main/models/llama3_1/LICENSE" target="_blank" rel="noopener noreferrer"
                      className={`font-semibold underline hover:no-underline ${isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-800'}`}>
-                    Llama2/Llama3.1:
+                    Llama 3.1/3.2/3.3:
                   </a>
                   <span className={`ml-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                     Custom license permitting commercial use under certain conditions
@@ -751,13 +756,7 @@ const AiModelsVisualization = () => {
                     Gemma Terms
                   </a>
                   <span className={`ml-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                    - Specific terms for Gemma model family
-                  </span>
-                </div>
-                <div>
-                  <strong className={isDarkMode ? 'text-gray-200' : 'text-gray-800'}>Other Proprietary:</strong>
-                  <span className={`ml-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                    Provider's own terms - check individual agreements
+                    - Commercial use allowed with distribution restrictions
                   </span>
                 </div>
               </div>
