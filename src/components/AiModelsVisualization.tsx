@@ -113,22 +113,22 @@ const AiModelsVisualization = () => {
 
   const getApiAccessLink = (provider: string): string => {
     const apiLinks: Record<string, string> = {
-      'OpenAI': 'https://platform.openai.com',
-      'Google': 'https://ai.google.dev',
-      'Anthropic': 'https://console.anthropic.com',
-      'Mistral': 'https://console.mistral.ai',
-      'Cohere': 'https://cohere.com/pricing',
-      'OpenRouter': 'https://openrouter.ai',
-      'Together AI': 'https://api.together.xyz',
-      'Groq': 'https://console.groq.com',
-      'Perplexity': 'https://docs.perplexity.ai',
-      'Fireworks': 'https://fireworks.ai',
-      'Replicate': 'https://replicate.com/pricing',
-      'AI21': 'https://studio.ai21.com',
-      'Anyscale': 'https://console.anyscale.com',
+      'OpenAI': 'https://platform.openai.com/api-keys',
+      'Google': 'https://aistudio.google.com/apikey',
+      'Anthropic': 'https://console.anthropic.com/settings/keys',
+      'Mistral': 'https://console.mistral.ai/api-keys',
+      'Cohere': 'https://dashboard.cohere.com/api-keys',
+      'OpenRouter': 'https://openrouter.ai/settings/keys',
+      'Together AI': 'https://api.together.ai/settings/api-keys',
+      'Groq': 'https://console.groq.com/keys',
+      'Perplexity': 'https://www.perplexity.ai/settings/api',
+      'Fireworks': 'https://fireworks.ai/api-keys',
+      'Replicate': 'https://replicate.com/account/api-tokens',
+      'AI21': 'https://studio.ai21.com/account/api-key',
+      'Anyscale': 'https://console.anyscale.com/credentials',
     };
     
-    return apiLinks[provider] || 'https://openrouter.ai';
+    return apiLinks[provider] || 'https://openrouter.ai/settings/keys';
   };
 
   const processData = (rawData: any[]) => {
@@ -681,19 +681,28 @@ const AiModelsVisualization = () => {
               }`}>📄 License Types Explained</h4>
               <div className="grid md:grid-cols-2 gap-3 text-sm">
                 <div>
-                  <strong className={isDarkMode ? 'text-gray-200' : 'text-gray-800'}>MIT:</strong>
+                  <a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener noreferrer" 
+                     className={`font-semibold underline hover:no-underline ${isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-800'}`}>
+                    MIT:
+                  </a>
                   <span className={`ml-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                     Permissive license allowing commercial use with attribution
                   </span>
                 </div>
                 <div>
-                  <strong className={isDarkMode ? 'text-gray-200' : 'text-gray-800'}>Apache-2.0:</strong>
+                  <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener noreferrer"
+                     className={`font-semibold underline hover:no-underline ${isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-800'}`}>
+                    Apache-2.0:
+                  </a>
                   <span className={`ml-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                     Commercial-friendly with patent protection
                   </span>
                 </div>
                 <div>
-                  <strong className={isDarkMode ? 'text-gray-200' : 'text-gray-800'}>Llama2/Llama3.1:</strong>
+                  <a href="https://github.com/meta-llama/llama-models/blob/main/models/llama3_1/LICENSE" target="_blank" rel="noopener noreferrer"
+                     className={`font-semibold underline hover:no-underline ${isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-800'}`}>
+                    Llama2/Llama3.1:
+                  </a>
                   <span className={`ml-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                     Custom license permitting commercial use under certain conditions
                   </span>
