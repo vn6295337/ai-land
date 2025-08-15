@@ -84,7 +84,7 @@ const AiModelsVisualization = () => {
     // Official company names mapping
     const companyMapping: Record<string, string> = {
       'meta-llama': 'Meta',
-      'mistralai': 'Mistral', 
+ 
       'google-bert': 'Google',
       'google-t5': 'Google',
       'openai': 'OpenAI',
@@ -94,7 +94,6 @@ const AiModelsVisualization = () => {
       'together': 'Together AI',
       'openrouter': 'OpenRouter',
       'google': 'Google',
-      'mistral': 'Mistral',
       'meta': 'Meta',
       'groq': 'Groq',
       'perplexity': 'Perplexity',
@@ -111,12 +110,22 @@ const AiModelsVisualization = () => {
     return normalizeCompanyName(originator);
   };
 
+  const formatLicense = (license: string, provider: string): string => {
+    if (!license || license === 'N/A') return 'N/A';
+    
+    // Replace "Proprietary" with provider-specific names for Google models
+    if (license.toLowerCase() === 'proprietary' && normalizeCompanyName(provider) === 'Google') {
+      return 'Google';
+    }
+    
+    return license;
+  };
+
   const getApiAccessLink = (provider: string): string => {
     const apiLinks: Record<string, string> = {
       'OpenAI': 'https://platform.openai.com/api-keys',
       'Google': 'https://aistudio.google.com/apikey',
       'Anthropic': 'https://console.anthropic.com/settings/keys',
-      'Mistral': 'https://console.mistral.ai/api-keys',
       'Cohere': 'https://dashboard.cohere.com/api-keys',
       'OpenRouter': 'https://openrouter.ai/settings/keys',
       'Together AI': 'https://api.together.ai/settings/api-keys',
@@ -245,7 +254,7 @@ const AiModelsVisualization = () => {
       const modelProvider = normalizeOriginator(model.model_originator || model.provider || 'unknown');
       const modelName = model.model_name;
       const modelType = formatTaskType(model.task_type);
-      const license = model.license || 'N/A';
+      const license = formatLicense(model.license, model.provider);
       const rateLimits = model.rate_limits || 'N/A';
 
       // Exclude Hugging Face models from filter options (not free - requires credits)
@@ -255,6 +264,11 @@ const AiModelsVisualization = () => {
 
       // Exclude NVIDIA models from filter options (requires infrastructure/hardware)
       if (inferenceProvider === 'NVIDIA' || model.provider === 'nvidia') {
+        return false;
+      }
+
+      // Exclude Mistral models from filter options (unclear free tier, requires billing)
+      if (inferenceProvider === 'Mistral' || model.provider === 'mistral' || model.provider === 'mistralai') {
         return false;
       }
 
@@ -290,7 +304,7 @@ const AiModelsVisualization = () => {
           value = formatTaskType(model.task_type);
           break;
         case 'license':
-          value = model.license || 'N/A';
+          value = formatLicense(model.license, model.provider);
           break;
         case 'rateLimits':
           value = model.rate_limits || 'N/A';
@@ -310,7 +324,7 @@ const AiModelsVisualization = () => {
     const modelProvider = normalizeOriginator(model.model_originator || model.provider || 'unknown');
     const modelName = model.model_name;
     const modelType = formatTaskType(model.task_type);
-    const license = model.license || 'N/A';
+    const license = formatLicense(model.license, model.provider);
     const rateLimits = model.rate_limits || 'N/A';
 
     // Exclude Hugging Face models (not free - requires credits)
@@ -320,6 +334,11 @@ const AiModelsVisualization = () => {
 
     // Exclude NVIDIA models (requires infrastructure/hardware)
     if (inferenceProvider === 'NVIDIA' || model.provider === 'nvidia') {
+      return false;
+    }
+
+    // Exclude Mistral models (unclear free tier, requires billing)
+    if (inferenceProvider === 'Mistral' || model.provider === 'mistral' || model.provider === 'mistralai') {
       return false;
     }
 
@@ -600,7 +619,7 @@ const AiModelsVisualization = () => {
                         }`}>{formatTaskType(model.task_type)}</td>
                         <td className={`py-3 px-4 text-sm ${
                           isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                        }`}>{model.license || 'N/A'}</td>
+                        }`}>{formatLicense(model.license, model.provider)}</td>
                         <td className={`py-3 px-4 text-sm ${
                           isDarkMode ? 'text-gray-300' : 'text-gray-700'
                         }`}>{model.rate_limits || 'N/A'}</td>
@@ -733,16 +752,6 @@ const AiModelsVisualization = () => {
                   </a>
                   <span className={`ml-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                     - Specific terms for Gemma model family
-                  </span>
-                </div>
-                <div>
-                  <strong className={isDarkMode ? 'text-gray-200' : 'text-gray-800'}>Mistral AI:</strong>
-                  <a href="https://mistral.ai/licenses/" target="_blank" rel="noopener noreferrer"
-                     className={`ml-2 underline hover:no-underline ${isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-800'}`}>
-                    Mistral Licenses
-                  </a>
-                  <span className={`ml-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                    - Mistral's model licensing terms
                   </span>
                 </div>
                 <div>
