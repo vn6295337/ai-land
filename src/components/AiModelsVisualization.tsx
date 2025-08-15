@@ -97,7 +97,13 @@ const AiModelsVisualization = () => {
       'openrouter': 'OpenRouter',
       'google': 'Google',
       'mistral': 'Mistral',
-      'meta': 'Meta'
+      'meta': 'Meta',
+      'groq': 'Groq',
+      'perplexity': 'Perplexity',
+      'fireworks': 'Fireworks',
+      'replicate': 'Replicate',
+      'ai21': 'AI21',
+      'anyscale': 'Anyscale'
     };
     
     return companyMapping[name.toLowerCase()] || name.charAt(0).toUpperCase() + name.slice(1);
@@ -122,7 +128,8 @@ const AiModelsVisualization = () => {
       'Fireworks': 'https://fireworks.ai',
       'Replicate': 'https://replicate.com/pricing',
       'AI21': 'https://studio.ai21.com',
-      'Anyscale': 'https://console.anyscale.com'
+      'Anyscale': 'https://console.anyscale.com',
+      'NVIDIA': 'https://build.nvidia.com'
     };
     
     return apiLinks[provider] || 'https://huggingface.co/pricing';
