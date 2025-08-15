@@ -495,6 +495,11 @@ const AiModelsVisualization = () => {
                   <tr className={`border-b ${
                     isDarkMode ? 'border-gray-600' : 'border-gray-300'
                   }`}>
+                    <th className={`text-left py-3 px-4 font-semibold ${
+                      isDarkMode ? 'text-gray-200' : 'text-gray-900'
+                    }`}>
+                      #
+                    </th>
                     {[
                       { key: 'inferenceProvider', label: 'Inference Provider' },
                       { key: 'modelProvider', label: 'Model Provider' },
@@ -578,6 +583,9 @@ const AiModelsVisualization = () => {
                       <tr key={index} className={`border-b ${
                         isDarkMode ? 'border-gray-700 hover:bg-gray-700' : 'border-gray-200 hover:bg-gray-50'
                       } transition-colors`}>
+                        <td className={`py-3 px-4 text-sm font-mono ${
+                          isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                        }`}>{index + 1}</td>
                         <td className={`py-3 px-4 text-sm ${
                           isDarkMode ? 'text-gray-300' : 'text-gray-700'
                         }`}>{inferenceProvider}</td>
@@ -679,7 +687,7 @@ const AiModelsVisualization = () => {
               <h4 className={`font-semibold mb-3 ${
                 isDarkMode ? 'text-gray-200' : 'text-gray-800'
               }`}>📄 License Types Explained</h4>
-              <div className="grid md:grid-cols-2 gap-3 text-sm">
+              <div className="grid lg:grid-cols-2 gap-3 text-sm">
                 <div>
                   <a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener noreferrer" 
                      className={`font-semibold underline hover:no-underline ${isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-800'}`}>
@@ -708,7 +716,37 @@ const AiModelsVisualization = () => {
                   </span>
                 </div>
                 <div>
-                  <strong className={isDarkMode ? 'text-gray-200' : 'text-gray-800'}>Proprietary:</strong>
+                  <strong className={isDarkMode ? 'text-gray-200' : 'text-gray-800'}>Google Gemini:</strong>
+                  <a href="https://developers.google.com/terms" target="_blank" rel="noopener noreferrer"
+                     className={`ml-2 underline hover:no-underline ${isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-800'}`}>
+                    Google API Terms
+                  </a>
+                  <span className={`ml-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                    - Google's developer terms for AI services
+                  </span>
+                </div>
+                <div>
+                  <strong className={isDarkMode ? 'text-gray-200' : 'text-gray-800'}>Google Gemma:</strong>
+                  <a href="https://ai.google.dev/gemma/terms" target="_blank" rel="noopener noreferrer"
+                     className={`ml-2 underline hover:no-underline ${isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-800'}`}>
+                    Gemma Terms
+                  </a>
+                  <span className={`ml-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                    - Specific terms for Gemma model family
+                  </span>
+                </div>
+                <div>
+                  <strong className={isDarkMode ? 'text-gray-200' : 'text-gray-800'}>Mistral AI:</strong>
+                  <a href="https://mistral.ai/licenses/" target="_blank" rel="noopener noreferrer"
+                     className={`ml-2 underline hover:no-underline ${isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-800'}`}>
+                    Mistral Licenses
+                  </a>
+                  <span className={`ml-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                    - Mistral's model licensing terms
+                  </span>
+                </div>
+                <div>
+                  <strong className={isDarkMode ? 'text-gray-200' : 'text-gray-800'}>Other Proprietary:</strong>
                   <span className={`ml-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                     Provider's own terms - check individual agreements
                   </span>
