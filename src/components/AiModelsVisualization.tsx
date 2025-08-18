@@ -6,6 +6,7 @@ const AiModelsVisualization = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const [columnFilters, setColumnFilters] = useState({
     inferenceProvider: new Set<string>(),
     modelProvider: new Set<string>(), 
@@ -22,27 +23,26 @@ const AiModelsVisualization = () => {
 
   const fetchModelData = async () => {
     try {
-      console.log('Fetching model data from ai_models_discovery...');
+      console.log('Fetching model data...');
       const response = await supabase
         .from('ai_models_discovery')
         .select('*')
-        .order('id', { ascending: true });
+        .order('id', { ascending: false });
 
       console.log('Supabase response:', response);
 
       if (response.error) {
         console.error('Supabase error:', response.error);
-        throw new Error(`Supabase error: ${response.error.message}`);
+        throw response.error;
       }
 
       if (!response.data || response.data.length === 0) {
         console.warn('No data returned from Supabase');
-        throw new Error('No data available from ai_models_discovery table');
+        return [];
       }
 
       console.log(`Successfully fetched ${response.data.length} records`);
       console.log('Sample record:', response.data[0]);
-      console.log('Sample record fields:', Object.keys(response.data[0]));
       return response.data;
     } catch (err) {
       console.error('Error fetching data:', err);
