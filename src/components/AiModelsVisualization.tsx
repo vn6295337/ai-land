@@ -211,15 +211,21 @@ const AiModelsVisualization = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-lg text-gray-900">Loading AI models data...</div>
+      <div className={`min-h-screen flex items-center justify-center ${
+        isDarkMode ? 'bg-gray-900' : 'bg-gray-50'
+      }`}>
+        <div className={`text-lg ${
+          isDarkMode ? 'text-gray-100' : 'text-gray-900'
+        }`}>Loading AI models data...</div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className={`min-h-screen flex items-center justify-center ${
+        isDarkMode ? 'bg-gray-900' : 'bg-gray-50'
+      }`}>
         <div className="text-red-600">Error: {error}</div>
       </div>
     );
@@ -227,38 +233,68 @@ const AiModelsVisualization = () => {
 
   if (!loading && models.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-gray-600">No data available</div>
+      <div className={`min-h-screen flex items-center justify-center ${
+        isDarkMode ? 'bg-gray-900' : 'bg-gray-50'
+      }`}>
+        <div className={`text-gray-600 ${
+          isDarkMode ? 'text-gray-400' : 'text-gray-600'
+        }`}>No data available</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen py-4 bg-gray-50">
+    <div className={`min-h-screen py-4 ${
+      isDarkMode ? 'bg-gray-900' : 'bg-gray-50'
+    }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex flex-col">
-        {/* Header */}
-        <div className="text-center mb-4">
-          <h1 className="text-2xl font-bold text-gray-900">
-            AI Models Discovery Dashboard
+        {/* Header with Dark Mode Toggle */}
+        <div className="text-center mb-4 relative">
+          <button
+            onClick={() => setIsDarkMode(!isDarkMode)}
+            className={`absolute top-0 right-0 p-2 rounded-lg transition-colors ${
+              isDarkMode 
+                ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' 
+                : 'bg-white text-gray-600 hover:bg-gray-100'
+            }`}
+            title="Toggle dark mode"
+          >
+            {isDarkMode ? '☀️' : '🌙'}
+          </button>
+          
+          <h1 className={`text-2xl font-bold ${
+            isDarkMode ? 'text-gray-100' : 'text-gray-900'
+          }`}>
+            Free to use models
           </h1>
-          <p className="text-lg mt-2 text-gray-600">
-            Real-time status of Large Language Models (LLMs) and Small Language Models (SLMs)
+          <p className={`text-lg mt-2 ${
+            isDarkMode ? 'text-gray-300' : 'text-gray-600'
+          }`}>
+            Interactive tracker of API-accessible and publicly available models
           </p>
         </div>
 
         <div className="flex-1 space-y-4">
           {/* Last Updated */}
-          <p className="text-xs text-center text-gray-500">
+          <p className={`text-xs text-center ${
+            isDarkMode ? 'text-gray-400' : 'text-gray-500'
+          }`}>
             Last updated: {lastRefresh.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })} UTC • Auto-refreshes every 5 minutes
           </p>
 
           {/* Simple Structured Table */}
-          <div className="p-6 rounded-lg shadow-lg bg-white">
+          <div className={`p-6 rounded-lg shadow-lg ${
+            isDarkMode ? 'bg-gray-800' : 'bg-white'
+          }`}>
             <div className="overflow-x-auto min-h-[400px]">
               <table className="w-full border-collapse" style={{ tableLayout: 'auto' }}>
                 <thead>
-                  <tr className="border-b border-gray-300">
-                    <th className="text-left py-3 px-4 font-semibold text-gray-900">#</th>
+                  <tr className={`border-b ${
+                    isDarkMode ? 'border-gray-600' : 'border-gray-300'
+                  }`}>
+                    <th className={`text-left py-3 px-4 font-semibold ${
+                      isDarkMode ? 'text-gray-200' : 'text-gray-900'
+                    }`}>#</th>
                     {[
                       { key: 'inferenceProvider', label: 'Inference Provider', className: 'min-w-[100px] max-w-[120px]' },
                       { key: 'modelProvider', label: 'Model Provider', className: 'min-w-[100px] max-w-[120px]' },
@@ -271,7 +307,9 @@ const AiModelsVisualization = () => {
                       { key: 'rateLimits', label: 'Rate Limits', className: 'min-w-[180px] max-w-[250px]' },
                       { key: 'apiAccess', label: 'API Access', className: 'min-w-[100px] max-w-[120px]' }
                     ].map((column) => (
-                      <th key={column.key} className={`text-left py-3 px-4 font-semibold text-gray-900 relative ${column.className || ''}`}>
+                      <th key={column.key} className={`text-left py-3 px-4 font-semibold ${
+                        isDarkMode ? 'text-gray-200' : 'text-gray-900'
+                      } relative ${column.className || ''}`}>
                         <div className="flex items-center justify-between">
                           <span>{column.label}</span>
                           <div className="relative">
@@ -279,8 +317,8 @@ const AiModelsVisualization = () => {
                               onClick={() => setOpenFilter(openFilter === column.key ? null : column.key)}
                               className={`filter-button ml-2 p-1 rounded hover:bg-opacity-20 ${
                                 columnFilters[column.key as keyof typeof columnFilters].size > 0
-                                  ? 'text-blue-600'
-                                  : 'text-gray-500 hover:text-gray-700'
+                                  ? (isDarkMode ? 'text-blue-400' : 'text-blue-600')
+                                  : (isDarkMode ? 'text-gray-400 hover:text-gray-200' : 'text-gray-500 hover:text-gray-700')
                               }`}
                             >
                               <Filter className="w-4 h-4" />
@@ -289,13 +327,21 @@ const AiModelsVisualization = () => {
                             {openFilter === column.key && (
                               <div className={`filter-dropdown absolute top-full ${
                                 ['inferenceProvider', 'modelProvider'].includes(column.key) ? 'left-0' : 'right-0'
-                              } ${column.key === 'apiAccess' ? 'right-0' : ''} mt-1 w-64 max-h-80 overflow-y-auto bg-white border-gray-300 border rounded-lg shadow-lg z-50`}>
+                              } ${column.key === 'apiAccess' ? 'right-0' : ''} mt-1 w-64 max-h-80 overflow-y-auto ${
+                                isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'
+                              } border rounded-lg shadow-lg z-50`}>
                                 <div className="p-2">
                                   <div className="flex justify-between items-center mb-2">
-                                    <span className="text-sm font-medium text-gray-800">Filter {column.label}</span>
+                                    <span className={`text-sm font-medium ${
+                                      isDarkMode ? 'text-gray-200' : 'text-gray-800'
+                                    }`}>Filter {column.label}</span>
                                     <button
                                       onClick={() => clearColumnFilter(column.key as keyof typeof columnFilters)}
-                                      className="text-xs px-2 py-1 rounded bg-red-600 hover:bg-red-700 text-white"
+                                      className={`text-xs px-2 py-1 rounded ${
+                                        isDarkMode 
+                                          ? 'bg-red-600 hover:bg-red-500 text-white' 
+                                          : 'bg-red-600 hover:bg-red-700 text-white'
+                                      }`}
                                     >
                                       Clear
                                     </button>
@@ -309,7 +355,9 @@ const AiModelsVisualization = () => {
                                           onChange={() => toggleFilterValue(column.key as keyof typeof columnFilters, value)}
                                           className="w-4 h-4"
                                         />
-                                        <span className="text-sm truncate text-gray-800" title={value}>
+                                        <span className={`text-sm truncate ${
+                                          isDarkMode ? 'text-gray-200' : 'text-gray-800'
+                                        }`} title={value}>
                                           {value}
                                         </span>
                                       </label>
@@ -327,15 +375,29 @@ const AiModelsVisualization = () => {
                 <tbody>
                   {filteredModels.map((model, index) => {
                     return (
-                      <tr key={index} className={`border-b border-gray-200 ${index % 2 === 0 
-                        ? 'bg-gray-50/50'
-                        : 'bg-white'
-                      } hover:bg-blue-50 transition-colors`}>
-                        <td className="py-3 px-4 text-sm font-mono text-gray-500">{index + 1}</td>
-                        <td className="py-3 px-4 text-sm text-gray-700 min-w-[100px] max-w-[120px] truncate">{model.inference_provider || 'Unknown'}</td>
-                        <td className="py-3 px-4 text-sm text-gray-700 min-w-[100px] max-w-[120px] truncate">{model.model_provider || 'Unknown'}</td>
-                        <td className="py-3 px-4 text-sm font-medium text-gray-900 min-w-[200px] max-w-[300px]">{model.human_readable_name || 'Unknown'}</td>
-                        <td className="py-3 px-4 text-sm text-gray-700 min-w-[120px] max-w-[150px] truncate">{model.model_provider_country || 'Unknown'}</td>
+                      <tr key={index} className={`border-b ${
+                        isDarkMode ? 'border-gray-700' : 'border-gray-200'
+                      } ${index % 2 === 0 
+                        ? (isDarkMode ? 'bg-gray-800/50' : 'bg-gray-50/50')
+                        : (isDarkMode ? 'bg-gray-900/30' : 'bg-white')
+                      } hover:${
+                        isDarkMode ? 'bg-gray-700' : 'bg-blue-50'
+                      } transition-colors`}>
+                        <td className={`py-3 px-4 text-sm font-mono ${
+                          isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                        }`}>{index + 1}</td>
+                        <td className={`py-3 px-4 text-sm ${
+                          isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                        } min-w-[100px] max-w-[120px] truncate`}>{model.inference_provider || 'Unknown'}</td>
+                        <td className={`py-3 px-4 text-sm ${
+                          isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                        } min-w-[100px] max-w-[120px] truncate`}>{model.model_provider || 'Unknown'}</td>
+                        <td className={`py-3 px-4 text-sm font-medium ${
+                          isDarkMode ? 'text-gray-100' : 'text-gray-900'
+                        } min-w-[200px] max-w-[300px]`}>{model.human_readable_name || 'Unknown'}</td>
+                        <td className={`py-3 px-4 text-sm ${
+                          isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                        } min-w-[120px] max-w-[150px] truncate`}>{model.model_provider_country || 'Unknown'}</td>
                         <td className="py-3 px-4 text-sm min-w-[100px] max-w-[120px]">
                           {model.official_url && model.official_url.startsWith('http') ? (
                             <a 
@@ -348,13 +410,23 @@ const AiModelsVisualization = () => {
                               <ExternalLink className="w-4 h-4" />
                             </a>
                           ) : (
-                            <span className="text-sm text-gray-500">{model.official_url || 'N/A'}</span>
+                            <span className={`text-sm ${
+                              isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                            }`}>{model.official_url || 'N/A'}</span>
                           )}
                         </td>
-                        <td className="py-3 px-4 text-sm text-gray-700 min-w-[100px] max-w-[130px] truncate">{model.input_modalities || 'Unknown'}</td>
-                        <td className="py-3 px-4 text-sm text-gray-700 min-w-[100px] max-w-[130px] truncate">{model.output_modalities || 'Unknown'}</td>
-                        <td className="py-3 px-4 text-sm text-gray-700 min-w-[80px] max-w-[100px] truncate">{model.license || 'N/A'}</td>
-                        <td className="py-3 px-4 text-sm text-gray-700 min-w-[180px] max-w-[250px]">{model.rate_limits || 'N/A'}</td>
+                        <td className={`py-3 px-4 text-sm ${
+                          isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                        } min-w-[100px] max-w-[130px] truncate`}>{model.input_modalities || 'Unknown'}</td>
+                        <td className={`py-3 px-4 text-sm ${
+                          isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                        } min-w-[100px] max-w-[130px] truncate`}>{model.output_modalities || 'Unknown'}</td>
+                        <td className={`py-3 px-4 text-sm ${
+                          isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                        } min-w-[80px] max-w-[100px] truncate`}>{model.license || 'N/A'}</td>
+                        <td className={`py-3 px-4 text-sm ${
+                          isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                        } min-w-[180px] max-w-[250px]`}>{model.rate_limits || 'N/A'}</td>
                         <td className="py-3 px-4 text-center min-w-[100px] max-w-[120px]">
                           {model.provider_api_access && model.provider_api_access.startsWith('http') ? (
                             <a 
@@ -369,7 +441,9 @@ const AiModelsVisualization = () => {
                               </svg>
                             </a>
                           ) : (
-                            <span className="text-sm text-gray-500">{model.provider_api_access || 'N/A'}</span>
+                            <span className={`text-sm ${
+                              isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                            }`}>{model.provider_api_access || 'N/A'}</span>
                           )}
                         </td>
                       </tr>
@@ -379,7 +453,9 @@ const AiModelsVisualization = () => {
               </table>
               
               {filteredModels.length === 0 && models.length > 0 && (
-                <div className="flex items-center justify-center py-12 text-gray-600">
+                <div className={`flex items-center justify-center py-12 ${
+                  isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                }`}>
                   <div className="text-center">
                     <Filter className="w-12 h-12 mx-auto mb-4 opacity-50" />
                     <p className="text-lg font-medium">No models match the current filters</p>
@@ -391,7 +467,11 @@ const AiModelsVisualization = () => {
             
             {/* Filter summary */}
             {Object.values(columnFilters).some(set => set.size > 0) && (
-              <div className="mt-4 p-3 rounded-lg border-l-4 bg-blue-50 border-blue-500 text-blue-800">
+              <div className={`mt-4 p-3 rounded-lg border-l-4 ${
+                isDarkMode 
+                  ? 'bg-blue-900/50 border-blue-400 text-blue-200' 
+                  : 'bg-blue-50 border-blue-500 text-blue-800'
+              }`}>
                 <div className="flex justify-between items-center">
                   <span className="text-sm">
                     Showing {filteredModels.length} of {models.length} models with active filters
@@ -409,7 +489,11 @@ const AiModelsVisualization = () => {
                       rateLimits: new Set<string>(),
                       apiAccess: new Set<string>()
                     })}
-                    className="text-xs px-3 py-1 rounded-md transition-colors bg-red-600 hover:bg-red-700 text-white"
+                    className={`text-xs px-3 py-1 rounded-md transition-colors ${
+                      isDarkMode
+                        ? 'bg-red-600 hover:bg-red-500 text-white'
+                        : 'bg-red-600 hover:bg-red-700 text-white'
+                    }`}
                   >
                     Clear All Filters
                   </button>
@@ -418,23 +502,86 @@ const AiModelsVisualization = () => {
             )}
             
             {/* Model Count */}
-            <div className="mt-4 text-center text-sm text-gray-600">
+            <div className={`mt-4 text-center text-sm ${
+              isDarkMode ? 'text-gray-400' : 'text-gray-600'
+            }`}>
               Total Models: {filteredModels.length}
             </div>
           </div>
         </div>
 
+        {/* License Explanations */}
+        <div className={`mt-8 p-6 rounded-lg shadow-lg ${
+          isDarkMode ? 'bg-gray-800' : 'bg-white'
+        }`}>
+          <h3 className={`text-lg font-semibold mb-4 ${
+            isDarkMode ? 'text-gray-100' : 'text-gray-900'
+          }`}>License Information</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div>
+              <h4 className={`font-medium mb-2 ${
+                isDarkMode ? 'text-gray-200' : 'text-gray-800'
+              }`}>Open Source Licenses:</h4>
+              <ul className={`space-y-1 ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-600'
+              }`}>
+                <li><strong>Apache 2.0:</strong> Permissive license allowing commercial use</li>
+                <li><strong>MIT:</strong> Very permissive, allows almost unrestricted use</li>
+                <li><strong>Llama:</strong> Meta's custom license for Llama models</li>
+                <li><strong>Gemma:</strong> Google's custom license for Gemma models</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className={`font-medium mb-2 ${
+                isDarkMode ? 'text-gray-200' : 'text-gray-800'
+              }`}>Proprietary Licenses:</h4>
+              <ul className={`space-y-1 ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-600'
+              }`}>
+                <li><strong>Google ToS:</strong> Subject to Google's Terms of Service</li>
+                <li><strong>Proprietary:</strong> Custom licensing terms apply</li>
+                <li><strong>Various:</strong> Multiple license types may apply</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
         {/* Legal Disclaimer */}
-        <div className="mt-8 pt-6 border-t rounded-lg p-4 border-gray-300 bg-gray-50">
-          <div className="text-xs text-gray-500">
-            <h4 className="font-semibold mb-3 text-gray-700">Legal Disclaimer</h4>
-            <p>
-              <strong>For informational purposes only:</strong> This dashboard provides real-time information about AI models and their availability. 
-              Model information is sourced from provider APIs and documentation. We are not responsible for model accuracy, 
-              availability, pricing changes, or any issues arising from using these models.
-            </p>
-            <p className="font-medium mt-2">
-              © 2025 AI Models Discovery Dashboard - Real-time LLM/SLM Status Tracker
+        <div className={`mt-8 pt-6 border-t rounded-lg p-4 ${
+          isDarkMode 
+            ? 'border-gray-700 bg-gray-800/50' 
+            : 'border-gray-300 bg-gray-50'
+        }`}>
+          <div className={`text-xs ${
+            isDarkMode ? 'text-gray-400' : 'text-gray-500'
+          }`}>
+            <h4 className={`font-semibold mb-3 ${
+              isDarkMode ? 'text-gray-300' : 'text-gray-700'
+            }`}>Important Legal Disclaimer</h4>
+            <div className="space-y-2">
+              <p>
+                <strong>For informational purposes only:</strong> This dashboard provides real-time information about AI models and their availability. 
+                Model information is sourced from provider APIs and documentation. All data is provided "as-is" without warranties of any kind.
+              </p>
+              <p>
+                <strong>No liability:</strong> We are not responsible for model accuracy, availability, pricing changes, rate limit modifications, 
+                license changes, or any issues arising from using these models. Users must verify all information independently.
+              </p>
+              <p>
+                <strong>Terms compliance:</strong> Users are responsible for complying with each provider's terms of service, usage policies, 
+                and applicable laws. Some models may have restrictions on commercial use, data processing, or geographic availability.
+              </p>
+              <p>
+                <strong>Rate limits:</strong> Displayed rate limits are for free tier usage and may change without notice. 
+                Actual limits may vary based on account status, usage history, and provider policies.
+              </p>
+              <p>
+                <strong>License verification:</strong> Always verify license terms directly with the model provider before use in production. 
+                License information displayed is for reference only and may not reflect the most current terms.
+              </p>
+            </div>
+            <p className="font-medium mt-4">
+              © 2025 Free AI Models Tracker - Interactive API-accessible model discovery platform
             </p>
           </div>
         </div>
