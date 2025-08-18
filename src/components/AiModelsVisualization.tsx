@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { ChevronDown, ChevronRight, ExternalLink, Filter, X } from 'lucide-react';
+import { ChevronDown, ChevronRight, ExternalLink, Filter, X, ChevronUp } from 'lucide-react';
 
 const AiModelsVisualization = () => {
   const [loading, setLoading] = useState(true);
@@ -20,6 +20,10 @@ const AiModelsVisualization = () => {
     apiAccess: new Set<string>()
   });
   const [openFilter, setOpenFilter] = useState<string | null>(null);
+  const [sortConfig, setSortConfig] = useState<{
+    key: string;
+    direction: 'asc' | 'desc';
+  } | null>(null);
 
   const fetchModelData = async () => {
     try {
@@ -122,6 +126,70 @@ const AiModelsVisualization = () => {
     return Array.from(values).sort();
   };
 
+  // Sort function
+  const handleSort = (key: string) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  // Get sorted models
+  const getSortedModels = (modelsToSort: any[]) => {
+    if (!sortConfig) return modelsToSort;
+
+    return [...modelsToSort].sort((a, b) => {
+      let aValue = '';
+      let bValue = '';
+
+      switch (sortConfig.key) {
+        case 'inferenceProvider':
+          aValue = a.inference_provider || '';
+          bValue = b.inference_provider || '';
+          break;
+        case 'modelProvider':
+          aValue = a.model_provider || '';
+          bValue = b.model_provider || '';
+          break;
+        case 'modelName':
+          aValue = a.human_readable_name || '';
+          bValue = b.human_readable_name || '';
+          break;
+        case 'modelProviderCountry':
+          aValue = a.model_provider_country || '';
+          bValue = b.model_provider_country || '';
+          break;
+        case 'inputModalities':
+          aValue = a.input_modalities || '';
+          bValue = b.input_modalities || '';
+          break;
+        case 'outputModalities':
+          aValue = a.output_modalities || '';
+          bValue = b.output_modalities || '';
+          break;
+        case 'license':
+          aValue = a.license || '';
+          bValue = b.license || '';
+          break;
+        case 'rateLimits':
+          aValue = a.rate_limits || '';
+          bValue = b.rate_limits || '';
+          break;
+        default:
+          return 0;
+      }
+
+      if (aValue < bValue) {
+        return sortConfig.direction === 'asc' ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return sortConfig.direction === 'asc' ? 1 : -1;
+      }
+      return 0;
+    });
+  };
+
   // Filter models based on current filters
   const filteredModels = models.filter(model => {
     const inferenceProvider = model.inference_provider || 'Unknown';
@@ -149,6 +217,9 @@ const AiModelsVisualization = () => {
     );
   });
 
+  // Apply sorting to filtered models
+  const sortedAndFilteredModels = getSortedModels(filteredModels);
+
   // Toggle filter value
   const toggleFilterValue = (columnKey: keyof typeof columnFilters, value: string) => {
     setColumnFilters(prev => {
@@ -167,6 +238,15 @@ const AiModelsVisualization = () => {
     setColumnFilters(prev => ({
       ...prev,
       [columnKey]: new Set<string>()
+    }));
+  };
+
+  // Select all filters for a column
+  const selectAllColumnFilter = (columnKey: keyof typeof columnFilters) => {
+    const allValues = getUniqueValues(columnKey);
+    setColumnFilters(prev => ({
+      ...prev,
+      [columnKey]: new Set(allValues)
     }));
   };
 
@@ -311,7 +391,19 @@ const AiModelsVisualization = () => {
                         isDarkMode ? 'text-gray-200' : 'text-gray-900'
                       } relative ${column.className || ''}`}>
                         <div className="flex items-center justify-between">
-                          <span>{column.label}</span>
+                          <button
+                            onClick={() => handleSort(column.key)}
+                            className={`flex items-center space-x-1 hover:${
+                              isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                            } transition-colors`}
+                          >
+                            <span>{column.label}</span>
+                            {sortConfig?.key === column.key && (
+                              sortConfig.direction === 'asc' 
+                                ? <ChevronUp className="w-4 h-4" />
+                                : <ChevronDown className="w-4 h-4" />
+                            )}
+                          </button>
                           <div className="relative">
                             <button
                               onClick={() => setOpenFilter(openFilter === column.key ? null : column.key)}
@@ -335,16 +427,28 @@ const AiModelsVisualization = () => {
                                     <span className={`text-sm font-medium ${
                                       isDarkMode ? 'text-gray-200' : 'text-gray-800'
                                     }`}>Filter {column.label}</span>
-                                    <button
-                                      onClick={() => clearColumnFilter(column.key as keyof typeof columnFilters)}
-                                      className={`text-xs px-2 py-1 rounded ${
-                                        isDarkMode 
-                                          ? 'bg-red-600 hover:bg-red-500 text-white' 
-                                          : 'bg-red-600 hover:bg-red-700 text-white'
-                                      }`}
-                                    >
-                                      Clear
-                                    </button>
+                                    <div className="flex space-x-2">
+                                      <button
+                                        onClick={() => selectAllColumnFilter(column.key as keyof typeof columnFilters)}
+                                        className={`text-xs px-2 py-1 rounded ${
+                                          isDarkMode 
+                                            ? 'bg-green-600 hover:bg-green-500 text-white' 
+                                            : 'bg-green-600 hover:bg-green-700 text-white'
+                                        }`}
+                                      >
+                                        Select All
+                                      </button>
+                                      <button
+                                        onClick={() => clearColumnFilter(column.key as keyof typeof columnFilters)}
+                                        className={`text-xs px-2 py-1 rounded ${
+                                          isDarkMode 
+                                            ? 'bg-red-600 hover:bg-red-500 text-white' 
+                                            : 'bg-red-600 hover:bg-red-700 text-white'
+                                        }`}
+                                      >
+                                        Clear
+                                      </button>
+                                    </div>
                                   </div>
                                   <div className="space-y-1">
                                     {getUniqueValues(column.key as keyof typeof columnFilters).map((value) => (
@@ -373,7 +477,7 @@ const AiModelsVisualization = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredModels.map((model, index) => {
+                  {sortedAndFilteredModels.map((model, index) => {
                     return (
                       <tr key={index} className={`border-b ${
                         isDarkMode ? 'border-gray-700' : 'border-gray-200'
@@ -452,7 +556,7 @@ const AiModelsVisualization = () => {
                 </tbody>
               </table>
               
-              {filteredModels.length === 0 && models.length > 0 && (
+              {sortedAndFilteredModels.length === 0 && models.length > 0 && (
                 <div className={`flex items-center justify-center py-12 ${
                   isDarkMode ? 'text-gray-400' : 'text-gray-600'
                 }`}>
@@ -474,7 +578,7 @@ const AiModelsVisualization = () => {
               }`}>
                 <div className="flex justify-between items-center">
                   <span className="text-sm">
-                    Showing {filteredModels.length} of {models.length} models with active filters
+                    Showing {sortedAndFilteredModels.length} of {models.length} models with active filters
                   </span>
                   <button
                     onClick={() => setColumnFilters({
@@ -505,7 +609,7 @@ const AiModelsVisualization = () => {
             <div className={`mt-4 text-center text-sm ${
               isDarkMode ? 'text-gray-400' : 'text-gray-600'
             }`}>
-              Total Models: {filteredModels.length}
+              Total Models: {sortedAndFilteredModels.length}
             </div>
           </div>
         </div>
@@ -540,10 +644,14 @@ const AiModelsVisualization = () => {
               }`}>
                 <li><strong>Google ToS:</strong> Subject to Google's Terms of Service</li>
                 <li><strong>Proprietary:</strong> Custom licensing terms apply</li>
-                <li><strong>Various:</strong> Multiple license types may apply</li>
               </ul>
             </div>
           </div>
+          <p className={`mt-4 text-sm font-medium ${
+            isDarkMode ? 'text-blue-300' : 'text-blue-700'
+          }`}>
+            Note: You need to register with each provider and generate an API key to use these models.
+          </p>
         </div>
 
         {/* Legal Disclaimer */}
