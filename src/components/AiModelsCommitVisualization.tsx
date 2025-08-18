@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ChevronDown, ChevronRight, ExternalLink, Filter, X } from 'lucide-react';
 
-const AiModelsVisualization = () => {
+const AiModelsCommitVisualization = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
@@ -22,9 +22,9 @@ const AiModelsVisualization = () => {
 
   const fetchModelData = async () => {
     try {
-      console.log('Fetching model data from ai_models_discovery...');
+      console.log('Fetching model data from ai_models_commit...');
       const response = await supabase
-        .from('ai_models_discovery')
+        .from('ai_models_commit')
         .select('*')
         .order('id', { ascending: true });
 
@@ -37,7 +37,7 @@ const AiModelsVisualization = () => {
 
       if (!response.data || response.data.length === 0) {
         console.warn('No data returned from Supabase');
-        throw new Error('No data available from ai_models_discovery table');
+        throw new Error('No data available from ai_models_commit table');
       }
 
       console.log(`Successfully fetched ${response.data.length} records`);
@@ -212,7 +212,7 @@ const AiModelsVisualization = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-lg text-gray-900">Loading AI models data...</div>
+        <div className="text-lg text-gray-900">Loading AI models commit data...</div>
       </div>
     );
   }
@@ -239,10 +239,10 @@ const AiModelsVisualization = () => {
         {/* Header */}
         <div className="text-center mb-4">
           <h1 className="text-2xl font-bold text-gray-900">
-            AI Models Discovery Dashboard
+            AI Models Commit Dashboard (Test)
           </h1>
           <p className="text-lg mt-2 text-gray-600">
-            Real-time status of Large Language Models (LLMs) and Small Language Models (SLMs)
+            Test version using ai_models_commit table data
           </p>
         </div>
 
@@ -424,17 +424,24 @@ const AiModelsVisualization = () => {
           </div>
         </div>
 
+        {/* Test Notice */}
+        <div className="mt-6 p-3 rounded-lg bg-yellow-50 border-yellow-200 border">
+          <p className="text-sm text-yellow-800">
+            🧪 <strong>Test Dashboard:</strong> This is a test version using the ai_models_commit table structure. 
+            Data includes {models.length} models with simplified 10-column schema.
+          </p>
+        </div>
+
         {/* Legal Disclaimer */}
         <div className="mt-8 pt-6 border-t rounded-lg p-4 border-gray-300 bg-gray-50">
           <div className="text-xs text-gray-500">
-            <h4 className="font-semibold mb-3 text-gray-700">Legal Disclaimer</h4>
+            <h4 className="font-semibold mb-3 text-gray-700">Legal Disclaimer & Testing</h4>
             <p>
-              <strong>For informational purposes only:</strong> This dashboard provides real-time information about AI models and their availability. 
-              Model information is sourced from provider APIs and documentation. We are not responsible for model accuracy, 
-              availability, pricing changes, or any issues arising from using these models.
+              <strong>Test Environment:</strong> This dashboard is provided for testing the ai_models_commit table integration. 
+              Model information is sourced from the cleaned and optimized dataset. Use for testing purposes only.
             </p>
             <p className="font-medium mt-2">
-              © 2025 AI Models Discovery Dashboard - Real-time LLM/SLM Status Tracker
+              © 2025 AI Models Discovery Dashboard - Test Version for ai_models_commit Integration
             </p>
           </div>
         </div>
@@ -443,4 +450,4 @@ const AiModelsVisualization = () => {
   );
 };
 
-export default AiModelsVisualization;
+export default AiModelsCommitVisualization;
