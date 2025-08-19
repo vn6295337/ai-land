@@ -360,7 +360,7 @@ const AiModelsVisualization = () => {
           <p className={`text-sm mt-1 ${
             isDarkMode ? 'text-yellow-300' : 'text-orange-600'
           }`}>
-            🔄 Update: Removed Together AI models - Requires purchasing credits to access API key)
+            🔄 Update: Removed Together AI models - they now require paid credits
           </p>
         </div>
 
