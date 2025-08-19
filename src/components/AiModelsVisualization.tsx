@@ -346,11 +346,21 @@ const AiModelsVisualization = () => {
             isDarkMode ? 'text-gray-100' : 'text-gray-900'
           }`}>
             Free to use models
+            <span className={`text-sm font-normal ml-2 px-2 py-1 rounded ${
+              isDarkMode ? 'bg-blue-800 text-blue-200' : 'bg-blue-100 text-blue-700'
+            }`}>
+              v2.1
+            </span>
           </h1>
           <p className={`text-lg mt-2 ${
             isDarkMode ? 'text-gray-300' : 'text-gray-600'
           }`}>
             Interactive tracker of API-accessible and publicly available models
+          </p>
+          <p className={`text-sm mt-1 ${
+            isDarkMode ? 'text-yellow-300' : 'text-orange-600'
+          }`}>
+            🔄 Update: Removed Together AI models - Requires purchasing credits to access API key)
           </p>
         </div>
 
