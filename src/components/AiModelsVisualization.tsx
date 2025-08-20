@@ -393,7 +393,7 @@ const AiModelsVisualization = () => {
                       { key: 'officialUrl', label: 'Official URL', className: 'min-w-[100px] max-w-[120px]' },
                       { key: 'inputModalities', label: 'Input Type', className: 'min-w-[100px] max-w-[130px]' },
                       { key: 'outputModalities', label: 'Output Type', className: 'min-w-[100px] max-w-[130px]' },
-                      { key: 'license', label: 'License', className: 'min-w-[80px] max-w-[100px]' },
+                      { key: 'license', label: 'License', className: 'min-w-[120px]' },
                       { key: 'rateLimits', label: 'Rate Limits', className: 'min-w-[180px] max-w-[250px]' },
                       { key: 'apiAccess', label: 'API Access', className: 'min-w-[100px] max-w-[120px]' }
                     ].map((column) => (
@@ -537,7 +537,7 @@ const AiModelsVisualization = () => {
                         } min-w-[100px] max-w-[130px] truncate`}>{model.output_modalities || 'Unknown'}</td>
                         <td className={`py-3 px-4 text-sm ${
                           isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                        } min-w-[80px] max-w-[100px] truncate`}>{model.license || 'N/A'}</td>
+                        } min-w-[120px] whitespace-nowrap`}>{model.license || 'N/A'}</td>
                         <td className={`py-3 px-4 text-sm ${
                           isDarkMode ? 'text-gray-300' : 'text-gray-700'
                         } min-w-[180px] max-w-[250px]`}>{model.rate_limits || 'N/A'}</td>
