@@ -135,6 +135,11 @@ const AiModelsCommitVisualization = () => {
     const rateLimits = model.rate_limits || 'N/A';
     const apiAccess = model.provider_api_access || 'N/A';
 
+    // Filter out Dolphin models from Cognitive Computations
+    if (modelProvider === 'Cognitive Computations' && modelName.toLowerCase().includes('dolphin')) {
+      return false;
+    }
+
     return (
       (columnFilters.inferenceProvider.size === 0 || columnFilters.inferenceProvider.has(inferenceProvider)) &&
       (columnFilters.modelProvider.size === 0 || columnFilters.modelProvider.has(modelProvider)) &&
@@ -233,13 +238,203 @@ const AiModelsCommitVisualization = () => {
     );
   }
 
+  // License mapping function
+  const getLicenseInfo = (model: any) => {
+    const modelProvider = model.model_provider || '';
+    const modelName = model.human_readable_name || '';
+    const currentLicense = model.license || 'N/A';
+    
+    // Special cases for specific models
+    if (modelName === 'Play.AI') {
+      return {
+        infoText: 'info',
+        infoUrl: 'https://play.ai/terms',
+        licenseText: 'Play AI',
+        licenseUrl: 'https://play.ai/terms'
+      };
+    }
+    
+    if (modelName.includes('Moonshot') || modelName.includes('Kimi')) {
+      return {
+        infoText: 'info',
+        infoUrl: 'https://www.kimi.com/',
+        licenseText: 'Kimi',
+        licenseUrl: 'https://www.kimi.com/user/agreement/modelUse?version=v2'
+      };
+    }
+    
+    if (modelName.includes('Sarvam')) {
+      return {
+        infoText: 'info',
+        infoUrl: 'https://huggingface.co/sarvamai/sarvam-m/blob/main/LICENSE.txt',
+        licenseText: 'Apache-2.0',
+        licenseUrl: 'https://www.apache.org/licenses/LICENSE-2.0'
+      };
+    }
+    
+    if (modelName.includes('R1 Distill Llama') && modelName.includes('70B')) {
+      return {
+        infoText: 'info',
+        infoUrl: 'https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Llama-70B/blob/main/LICENSE',
+        licenseText: 'MIT',
+        licenseUrl: 'https://spdx.org/licenses/MIT.html'
+      };
+    }
+    
+    if (modelName.includes('R1 Qwen3') && modelName.includes('8B')) {
+      return {
+        infoText: 'info',
+        infoUrl: 'https://huggingface.co/deepseek-ai/DeepSeek-R1-0528-Qwen3-8B/blob/main/LICENSE',
+        licenseText: 'MIT',
+        licenseUrl: 'https://spdx.org/licenses/MIT.html'
+      };
+    }
+    
+    if (modelName.includes('Whisper')) {
+      return {
+        infoText: 'info',
+        infoUrl: 'https://github.com/openai/whisper?tab=MIT-1-ov-file#readme',
+        licenseText: 'MIT',
+        licenseUrl: 'https://spdx.org/licenses/MIT.html'
+      };
+    }
+    
+    if (modelName.includes('GPT OSS')) {
+      return {
+        infoText: 'info',
+        infoUrl: 'https://openai.com/index/introducing-gpt-oss/',
+        licenseText: 'Apache-2.0',
+        licenseUrl: 'https://www.apache.org/licenses/LICENSE-2.0'
+      };
+    }
+    
+    if (modelName.includes('Llama 4')) {
+      return {
+        infoText: 'info',
+        infoUrl: 'https://www.llama.com/llama-downloads/',
+        licenseText: 'Llama-4',
+        licenseUrl: 'https://www.llama.com/llama4/license/'
+      };
+    }
+    
+    if (modelName.includes('Llama Guard 4') || modelName.includes('Llama Prompt Guard 2')) {
+      const licenseType = modelName.includes('Guard 4') ? 'Llama-4' : 'Llama-3';
+      const licenseUrl = modelName.includes('Guard 4') ? 'https://www.llama.com/llama4/license/' : 'https://www.llama.com/llama3/license/';
+      return {
+        infoText: 'info',
+        infoUrl: 'https://www.llama.com/llama-downloads/',
+        licenseText: licenseType,
+        licenseUrl: licenseUrl
+      };
+    }
+    
+    if (modelName.includes('Llama 3.3')) {
+      return {
+        infoText: 'info',
+        infoUrl: 'https://www.llama.com/llama-downloads/',
+        licenseText: 'Llama-3.3',
+        licenseUrl: 'https://www.llama.com/llama3_3/license/'
+      };
+    }
+    
+    if (modelName.includes('Llama 3.1')) {
+      return {
+        infoText: 'info',
+        infoUrl: 'https://www.llama.com/llama-downloads/',
+        licenseText: 'Llama-3.1',
+        licenseUrl: 'https://www.llama.com/llama3_1/license/'
+      };
+    }
+    
+    if (modelName.includes('Llama 3')) {
+      return {
+        infoText: 'info',
+        infoUrl: 'https://www.llama.com/llama-downloads/',
+        licenseText: 'Llama-3',
+        licenseUrl: 'https://www.llama.com/llama3/license/'
+      };
+    }
+    
+    if (modelName.includes('R1 Distill Llama') && !modelName.includes('70B')) {
+      return {
+        infoText: 'info',
+        infoUrl: 'https://github.com/deepseek-ai/DeepSeek-R1?tab=MIT-1-ov-file#readme',
+        licenseText: 'MIT',
+        licenseUrl: 'https://spdx.org/licenses/MIT.html'
+      };
+    }
+    
+    if (modelName.includes('Qwen 3') || modelName.includes('QwQ')) {
+      return {
+        infoText: 'info',
+        infoUrl: modelName.includes('QwQ') ? 'https://huggingface.co/Qwen/QwQ-32B/blob/main/LICENSE' : `https://huggingface.co/Qwen/Qwen3-${modelName.includes('32B') ? '32B' : modelName.includes('14B') ? '14B' : '8B'}/blob/main/LICENSE`,
+        licenseText: 'Apache-2.0',
+        licenseUrl: 'https://www.apache.org/licenses/LICENSE-2.0'
+      };
+    }
+    
+    if (modelName.includes('Qwen 2.5 VL')) {
+      return {
+        infoText: 'info',
+        infoUrl: 'https://huggingface.co/Qwen/Qwen2.5-VL-72B-Instruct',
+        licenseText: 'Qwen',
+        licenseUrl: 'https://huggingface.co/Qwen/Qwen2.5-VL-72B-Instruct/blob/main/LICENSE'
+      };
+    }
+    
+    // Provider-based rules
+    if (modelProvider === 'Mistral AI') {
+      return {
+        infoText: 'info',
+        infoUrl: 'https://docs.mistral.ai/getting-started/models/models_overview/',
+        licenseText: 'Apache-2.0',
+        licenseUrl: 'https://www.apache.org/licenses/LICENSE-2.0'
+      };
+    }
+    
+    if (modelProvider === 'Google' && modelName.toLowerCase().includes('gemini')) {
+      return {
+        infoText: 'Google',
+        infoUrl: 'https://developers.google.com/terms',
+        licenseText: 'Gemini',
+        licenseUrl: 'https://ai.google.dev/gemini-api/terms'
+      };
+    }
+    
+    if (modelProvider === 'Google' && modelName.toLowerCase().includes('gemma')) {
+      return {
+        infoText: 'Gemma',
+        infoUrl: 'https://ai.google.dev/gemma/terms',
+        licenseText: '',
+        licenseUrl: ''
+      };
+    }
+    
+    // Default fallback
+    return {
+      infoText: 'info',
+      infoUrl: '#',
+      licenseText: currentLicense,
+      licenseUrl: '#'
+    };
+  };
+
+  // Update official URL for Kimi/Moonshot models
+  const getOfficialUrl = (model: any) => {
+    const modelName = model.human_readable_name || '';
+    if (modelName.includes('Moonshot') || modelName.includes('Kimi')) {
+      return 'https://www.moonshot.ai/';
+    }
+    return model.official_url;
+  };
+
   return (
     <div className="min-h-screen py-4 bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex flex-col">
         {/* Header */}
         <div className="text-center mb-4">
           <h1 className="text-2xl font-bold text-gray-900">
-            AI Models Commit Dashboard (Test)
+            AI Models Commit Dashboard (Test) v2.2
           </h1>
           <p className="text-lg mt-2 text-gray-600">
             Test version using ai_models_commit table data
@@ -251,6 +446,29 @@ const AiModelsCommitVisualization = () => {
           <p className="text-xs text-center text-gray-500">
             Last updated: {lastRefresh.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })} UTC • Auto-refreshes every 5 minutes
           </p>
+
+          {/* Clear Filters Button */}
+          {Object.values(columnFilters).some(set => set.size > 0) && (
+            <div className="flex justify-center">
+              <button
+                onClick={() => setColumnFilters({
+                  inferenceProvider: new Set<string>(),
+                  modelProvider: new Set<string>(),
+                  modelName: new Set<string>(),
+                  modelProviderCountry: new Set<string>(),
+                  officialUrl: new Set<string>(),
+                  inputModalities: new Set<string>(),
+                  outputModalities: new Set<string>(),
+                  license: new Set<string>(),
+                  rateLimits: new Set<string>(),
+                  apiAccess: new Set<string>()
+                })}
+                className="px-4 py-2 rounded-md transition-colors bg-red-600 hover:bg-red-700 text-white font-medium"
+              >
+                Clear All Filters
+              </button>
+            </div>
+          )}
 
           {/* Simple Structured Table */}
           <div className="p-6 rounded-lg shadow-lg bg-white">
@@ -337,23 +555,60 @@ const AiModelsCommitVisualization = () => {
                         <td className="py-3 px-4 text-sm font-medium text-gray-900 min-w-[200px] max-w-[300px]">{model.human_readable_name || 'Unknown'}</td>
                         <td className="py-3 px-4 text-sm text-gray-700 min-w-[120px] max-w-[150px] truncate">{model.model_provider_country || 'Unknown'}</td>
                         <td className="py-3 px-4 text-sm min-w-[100px] max-w-[120px]">
-                          {model.official_url && model.official_url.startsWith('http') ? (
-                            <a 
-                              href={model.official_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              title="Visit Official Page"
-                              className="inline-flex items-center justify-center w-8 h-8 rounded-full transition-colors bg-green-600 hover:bg-green-700 text-white"
-                            >
-                              <ExternalLink className="w-4 h-4" />
-                            </a>
-                          ) : (
-                            <span className="text-sm text-gray-500">{model.official_url || 'N/A'}</span>
-                          )}
+                          {(() => {
+                            const officialUrl = getOfficialUrl(model);
+                            return officialUrl && officialUrl.startsWith('http') ? (
+                              <a 
+                                href={officialUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title="Visit Official Page"
+                                className="inline-flex items-center justify-center w-8 h-8 rounded-full transition-colors bg-green-600 hover:bg-green-700 text-white"
+                              >
+                                <ExternalLink className="w-4 h-4" />
+                              </a>
+                            ) : (
+                              <span className="text-sm text-gray-500">{officialUrl || 'N/A'}</span>
+                            );
+                          })()}
                         </td>
                         <td className="py-3 px-4 text-sm text-gray-700 min-w-[100px] max-w-[130px] truncate">{model.input_modalities || 'Unknown'}</td>
                         <td className="py-3 px-4 text-sm text-gray-700 min-w-[100px] max-w-[130px] truncate">{model.output_modalities || 'Unknown'}</td>
-                        <td className="py-3 px-4 text-sm text-gray-700 min-w-[80px] max-w-[100px] truncate">{model.license || 'N/A'}</td>
+                        <td className="py-3 px-4 text-sm min-w-[80px] max-w-[100px]">
+                          {(() => {
+                            const licenseInfo = getLicenseInfo(model);
+                            return (
+                              <div className="text-center">
+                                {licenseInfo.infoUrl !== '#' ? (
+                                  <a
+                                    href={licenseInfo.infoUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-800 hover:underline block"
+                                  >
+                                    {licenseInfo.infoText}
+                                  </a>
+                                ) : (
+                                  <span className="text-gray-700 block">{licenseInfo.infoText}</span>
+                                )}
+                                {licenseInfo.licenseText && (
+                                  licenseInfo.licenseUrl !== '#' ? (
+                                    <a
+                                      href={licenseInfo.licenseUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-blue-600 hover:text-blue-800 hover:underline block"
+                                    >
+                                      {licenseInfo.licenseText}
+                                    </a>
+                                  ) : (
+                                    <span className="text-gray-700 block">{licenseInfo.licenseText}</span>
+                                  )
+                                )}
+                              </div>
+                            );
+                          })()}
+                        </td>
                         <td className="py-3 px-4 text-sm text-gray-700 min-w-[180px] max-w-[250px]">{model.rate_limits || 'N/A'}</td>
                         <td className="py-3 px-4 text-center min-w-[100px] max-w-[120px]">
                           {model.provider_api_access && model.provider_api_access.startsWith('http') ? (
@@ -392,28 +647,9 @@ const AiModelsCommitVisualization = () => {
             {/* Filter summary */}
             {Object.values(columnFilters).some(set => set.size > 0) && (
               <div className="mt-4 p-3 rounded-lg border-l-4 bg-blue-50 border-blue-500 text-blue-800">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">
-                    Showing {filteredModels.length} of {models.length} models with active filters
-                  </span>
-                  <button
-                    onClick={() => setColumnFilters({
-                      inferenceProvider: new Set<string>(),
-                      modelProvider: new Set<string>(),
-                      modelName: new Set<string>(),
-                      modelProviderCountry: new Set<string>(),
-                      officialUrl: new Set<string>(),
-                      inputModalities: new Set<string>(),
-                      outputModalities: new Set<string>(),
-                      license: new Set<string>(),
-                      rateLimits: new Set<string>(),
-                      apiAccess: new Set<string>()
-                    })}
-                    className="text-xs px-3 py-1 rounded-md transition-colors bg-red-600 hover:bg-red-700 text-white"
-                  >
-                    Clear All Filters
-                  </button>
-                </div>
+                <span className="text-sm">
+                  Showing {filteredModels.length} of {models.length} models with active filters
+                </span>
               </div>
             )}
             
@@ -428,7 +664,8 @@ const AiModelsCommitVisualization = () => {
         <div className="mt-6 p-3 rounded-lg bg-yellow-50 border-yellow-200 border">
           <p className="text-sm text-yellow-800">
             🧪 <strong>Test Dashboard:</strong> This is a test version using the ai_models_commit table structure. 
-            Data includes {models.length} models with simplified 10-column schema.
+            Data includes {models.length} models with simplified 10-column schema. 
+            🔄 <strong>Update:</strong> Removed Dolphin models - license details not available. Minor corrections in License column.
           </p>
         </div>
 
