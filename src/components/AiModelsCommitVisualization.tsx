@@ -22,9 +22,9 @@ const AiModelsCommitVisualization = () => {
 
   const fetchModelData = async () => {
     try {
-      console.log('Fetching model data from ai_models_commit...');
+      console.log('Fetching model data from ai_models_main...');
       const response = await supabase
-        .from('ai_models_commit')
+        .from('ai_models_main')
         .select('*')
         .order('id', { ascending: true });
 
@@ -37,7 +37,7 @@ const AiModelsCommitVisualization = () => {
 
       if (!response.data || response.data.length === 0) {
         console.warn('No data returned from Supabase');
-        throw new Error('No data available from ai_models_commit table');
+        throw new Error('No data available from ai_models_main table');
       }
 
       console.log(`Successfully fetched ${response.data.length} records`);
@@ -238,186 +238,7 @@ const AiModelsCommitVisualization = () => {
     );
   }
 
-  // License mapping function
-  const getLicenseInfo = (model: any) => {
-    const modelProvider = model.model_provider || '';
-    const modelName = model.human_readable_name || '';
-    const currentLicense = model.license || 'N/A';
-    
-    // Special cases for specific models
-    if (modelName === 'Play.AI') {
-      return {
-        infoText: 'info',
-        infoUrl: 'https://play.ai/terms',
-        licenseText: 'Play AI',
-        licenseUrl: 'https://play.ai/terms'
-      };
-    }
-    
-    if (modelName.includes('Moonshot') || modelName.includes('Kimi')) {
-      return {
-        infoText: 'info',
-        infoUrl: 'https://www.kimi.com/',
-        licenseText: 'Kimi',
-        licenseUrl: 'https://www.kimi.com/user/agreement/modelUse?version=v2'
-      };
-    }
-    
-    if (modelName.includes('Sarvam')) {
-      return {
-        infoText: 'info',
-        infoUrl: 'https://huggingface.co/sarvamai/sarvam-m/blob/main/LICENSE.txt',
-        licenseText: 'Apache-2.0',
-        licenseUrl: 'https://www.apache.org/licenses/LICENSE-2.0'
-      };
-    }
-    
-    if (modelName.includes('R1 Distill Llama') && modelName.includes('70B')) {
-      return {
-        infoText: 'info',
-        infoUrl: 'https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Llama-70B/blob/main/LICENSE',
-        licenseText: 'MIT',
-        licenseUrl: 'https://spdx.org/licenses/MIT.html'
-      };
-    }
-    
-    if (modelName.includes('R1 Qwen3') && modelName.includes('8B')) {
-      return {
-        infoText: 'info',
-        infoUrl: 'https://huggingface.co/deepseek-ai/DeepSeek-R1-0528-Qwen3-8B/blob/main/LICENSE',
-        licenseText: 'MIT',
-        licenseUrl: 'https://spdx.org/licenses/MIT.html'
-      };
-    }
-    
-    if (modelName.includes('Whisper')) {
-      return {
-        infoText: 'info',
-        infoUrl: 'https://github.com/openai/whisper?tab=MIT-1-ov-file#readme',
-        licenseText: 'MIT',
-        licenseUrl: 'https://spdx.org/licenses/MIT.html'
-      };
-    }
-    
-    if (modelName.includes('GPT OSS')) {
-      return {
-        infoText: 'info',
-        infoUrl: 'https://openai.com/index/introducing-gpt-oss/',
-        licenseText: 'Apache-2.0',
-        licenseUrl: 'https://www.apache.org/licenses/LICENSE-2.0'
-      };
-    }
-    
-    if (modelName.includes('Llama 4')) {
-      return {
-        infoText: 'info',
-        infoUrl: 'https://www.llama.com/llama-downloads/',
-        licenseText: 'Llama-4',
-        licenseUrl: 'https://www.llama.com/llama4/license/'
-      };
-    }
-    
-    if (modelName.includes('Llama Guard 4') || modelName.includes('Llama Prompt Guard 2')) {
-      const licenseType = modelName.includes('Guard 4') ? 'Llama-4' : 'Llama-3';
-      const licenseUrl = modelName.includes('Guard 4') ? 'https://www.llama.com/llama4/license/' : 'https://www.llama.com/llama3/license/';
-      return {
-        infoText: 'info',
-        infoUrl: 'https://www.llama.com/llama-downloads/',
-        licenseText: licenseType,
-        licenseUrl: licenseUrl
-      };
-    }
-    
-    if (modelName.includes('Llama 3.3')) {
-      return {
-        infoText: 'info',
-        infoUrl: 'https://www.llama.com/llama-downloads/',
-        licenseText: 'Llama-3.3',
-        licenseUrl: 'https://www.llama.com/llama3_3/license/'
-      };
-    }
-    
-    if (modelName.includes('Llama 3.1')) {
-      return {
-        infoText: 'info',
-        infoUrl: 'https://www.llama.com/llama-downloads/',
-        licenseText: 'Llama-3.1',
-        licenseUrl: 'https://www.llama.com/llama3_1/license/'
-      };
-    }
-    
-    if (modelName.includes('Llama 3')) {
-      return {
-        infoText: 'info',
-        infoUrl: 'https://www.llama.com/llama-downloads/',
-        licenseText: 'Llama-3',
-        licenseUrl: 'https://www.llama.com/llama3/license/'
-      };
-    }
-    
-    if (modelName.includes('R1 Distill Llama') && !modelName.includes('70B')) {
-      return {
-        infoText: 'info',
-        infoUrl: 'https://github.com/deepseek-ai/DeepSeek-R1?tab=MIT-1-ov-file#readme',
-        licenseText: 'MIT',
-        licenseUrl: 'https://spdx.org/licenses/MIT.html'
-      };
-    }
-    
-    if (modelName.includes('Qwen 3') || modelName.includes('QwQ')) {
-      return {
-        infoText: 'info',
-        infoUrl: modelName.includes('QwQ') ? 'https://huggingface.co/Qwen/QwQ-32B/blob/main/LICENSE' : `https://huggingface.co/Qwen/Qwen3-${modelName.includes('32B') ? '32B' : modelName.includes('14B') ? '14B' : '8B'}/blob/main/LICENSE`,
-        licenseText: 'Apache-2.0',
-        licenseUrl: 'https://www.apache.org/licenses/LICENSE-2.0'
-      };
-    }
-    
-    if (modelName.includes('Qwen 2.5 VL')) {
-      return {
-        infoText: 'info',
-        infoUrl: 'https://huggingface.co/Qwen/Qwen2.5-VL-72B-Instruct',
-        licenseText: 'Qwen',
-        licenseUrl: 'https://huggingface.co/Qwen/Qwen2.5-VL-72B-Instruct/blob/main/LICENSE'
-      };
-    }
-    
-    // Provider-based rules
-    if (modelProvider === 'Mistral AI') {
-      return {
-        infoText: 'info',
-        infoUrl: 'https://docs.mistral.ai/getting-started/models/models_overview/',
-        licenseText: 'Apache-2.0',
-        licenseUrl: 'https://www.apache.org/licenses/LICENSE-2.0'
-      };
-    }
-    
-    if (modelProvider === 'Google' && modelName.toLowerCase().includes('gemini')) {
-      return {
-        infoText: 'Google',
-        infoUrl: 'https://developers.google.com/terms',
-        licenseText: 'Gemini',
-        licenseUrl: 'https://ai.google.dev/gemini-api/terms'
-      };
-    }
-    
-    if (modelProvider === 'Google' && modelName.toLowerCase().includes('gemma')) {
-      return {
-        infoText: 'Gemma',
-        infoUrl: 'https://ai.google.dev/gemma/terms',
-        licenseText: '',
-        licenseUrl: ''
-      };
-    }
-    
-    // Default fallback
-    return {
-      infoText: 'info',
-      infoUrl: '#',
-      licenseText: currentLicense,
-      licenseUrl: '#'
-    };
-  };
+  // Complex license mapping removed - now using database fields directly
 
   // Update official URL for Kimi/Moonshot models
   const getOfficialUrl = (model: any) => {
@@ -575,39 +396,38 @@ const AiModelsCommitVisualization = () => {
                         <td className="py-3 px-4 text-sm text-gray-700 min-w-[100px] max-w-[130px] truncate">{model.input_modalities || 'Unknown'}</td>
                         <td className="py-3 px-4 text-sm text-gray-700 min-w-[100px] max-w-[130px] truncate">{model.output_modalities || 'Unknown'}</td>
                         <td className="py-3 px-4 text-sm min-w-[80px] max-w-[100px]">
-                          {(() => {
-                            const licenseInfo = getLicenseInfo(model);
-                            return (
-                              <div className="text-center">
-                                {licenseInfo.infoUrl !== '#' ? (
-                                  <a
-                                    href={licenseInfo.infoUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600 hover:text-blue-800 hover:underline block"
-                                  >
-                                    {licenseInfo.infoText}
-                                  </a>
-                                ) : (
-                                  <span className="text-gray-700 block">{licenseInfo.infoText}</span>
-                                )}
-                                {licenseInfo.licenseText && (
-                                  licenseInfo.licenseUrl !== '#' ? (
-                                    <a
-                                      href={licenseInfo.licenseUrl}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="text-blue-600 hover:text-blue-800 hover:underline block"
-                                    >
-                                      {licenseInfo.licenseText}
-                                    </a>
-                                  ) : (
-                                    <span className="text-gray-700 block">{licenseInfo.licenseText}</span>
-                                  )
-                                )}
-                              </div>
-                            );
-                          })()}
+                          <div className="text-center">
+                            {/* Top line: Info text with URL */}
+                            {model.license_info_text && (
+                              model.license_info_url ? (
+                                <a
+                                  href={model.license_info_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:text-blue-800 hover:underline block"
+                                >
+                                  {model.license_info_text}
+                                </a>
+                              ) : (
+                                <span className="text-gray-700 block">{model.license_info_text}</span>
+                              )
+                            )}
+                            {/* Bottom line: License name with URL */}
+                            {model.license_name && (
+                              model.license_url ? (
+                                <a
+                                  href={model.license_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:text-blue-800 hover:underline block"
+                                >
+                                  {model.license_name}
+                                </a>
+                              ) : (
+                                <span className="text-gray-700 block">{model.license_name}</span>
+                              )
+                            )}
+                          </div>
                         </td>
                         <td className="py-3 px-4 text-sm text-gray-700 min-w-[180px] max-w-[250px]">{model.rate_limits || 'N/A'}</td>
                         <td className="py-3 px-4 text-center min-w-[100px] max-w-[120px]">
@@ -663,9 +483,9 @@ const AiModelsCommitVisualization = () => {
         {/* Test Notice */}
         <div className="mt-6 p-3 rounded-lg bg-yellow-50 border-yellow-200 border">
           <p className="text-sm text-yellow-800">
-            🧪 <strong>Test Dashboard:</strong> This is a test version using the ai_models_commit table structure. 
-            Data includes {models.length} models with simplified 10-column schema. 
-            🔄 <strong>Update:</strong> Removed Dolphin models - license details not available. Minor corrections in License column.
+            🧪 <strong>Test Dashboard v2.3:</strong> Enhanced license display with structured hyperlinks. 
+            Data includes {models.length} models from ai_models_main table with database-first architecture. 
+            🔗 <strong>New:</strong> Two-line license cells with clickable info and license links - no more complex frontend mapping.
           </p>
         </div>
 
@@ -678,7 +498,7 @@ const AiModelsCommitVisualization = () => {
               Model information is sourced from the cleaned and optimized dataset. Use for testing purposes only.
             </p>
             <p className="font-medium mt-2">
-              © 2025 AI Models Discovery Dashboard - Test Version for ai_models_commit Integration
+              © 2025 AI Models Discovery Dashboard - v2.3 Enhanced License Display
             </p>
           </div>
         </div>
