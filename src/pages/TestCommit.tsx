@@ -1,8 +1,8 @@
 import React from 'react';
-import AiModelsCommitVisualization from '@/components/AiModelsCommitVisualization';
+import AiModelsVisualization from '@/components/AiModelsVisualization';
 
 const TestCommit = () => {
-  return <AiModelsCommitVisualization />;
+  return <AiModelsVisualization />;
 };
 
 export default TestCommit;
