@@ -255,10 +255,10 @@ const AiModelsCommitVisualization = () => {
         {/* Header */}
         <div className="text-center mb-4">
           <h1 className="text-2xl font-bold text-gray-900">
-            AI Models Commit Dashboard (Test) v2.2
+            AI Models Main Dashboard v2.3
           </h1>
           <p className="text-lg mt-2 text-gray-600">
-            Test version using ai_models_commit table data
+            Enhanced license display with two-line hyperlinked format from ai_models_main table
           </p>
         </div>
 
@@ -494,8 +494,8 @@ const AiModelsCommitVisualization = () => {
           <div className="text-xs text-gray-500">
             <h4 className="font-semibold mb-3 text-gray-700">Legal Disclaimer & Testing</h4>
             <p>
-              <strong>Test Environment:</strong> This dashboard is provided for testing the ai_models_commit table integration. 
-              Model information is sourced from the cleaned and optimized dataset. Use for testing purposes only.
+              <strong>Production Environment:</strong> This dashboard displays AI models from the ai_models_main table with enhanced license structure. 
+              Model information includes structured license data with clickable links for documentation and licensing information.
             </p>
             <p className="font-medium mt-2">
               © 2025 AI Models Discovery Dashboard - v2.3 Enhanced License Display
