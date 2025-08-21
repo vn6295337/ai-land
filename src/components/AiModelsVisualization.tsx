@@ -66,7 +66,7 @@ const AiModelsVisualization = () => {
       const officialUrl = model.official_url || 'N/A';
       const inputModalities = model.input_modalities || 'Unknown';
       const outputModalities = model.output_modalities || 'Unknown';
-      const license = model.license || 'N/A';
+      const license = model.license_name || 'N/A';
       const rateLimits = model.rate_limits || 'N/A';
       const apiAccess = model.provider_api_access || 'N/A';
 
@@ -109,7 +109,7 @@ const AiModelsVisualization = () => {
           value = model.output_modalities || 'Unknown';
           break;
         case 'license':
-          value = model.license || 'N/A';
+          value = model.license_name || 'N/A';
           break;
         case 'rateLimits':
           value = model.rate_limits || 'N/A';
@@ -132,7 +132,7 @@ const AiModelsVisualization = () => {
     const officialUrl = model.official_url || 'N/A';
     const inputModalities = model.input_modalities || 'Unknown';
     const outputModalities = model.output_modalities || 'Unknown';
-    const license = model.license || 'N/A';
+    const license = model.license_name || 'N/A';
     const rateLimits = model.rate_limits || 'N/A';
     const apiAccess = model.provider_api_access || 'N/A';
 
@@ -266,7 +266,7 @@ const AiModelsVisualization = () => {
           </button>
           
           <h1 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-            AI Models Dashboard <span className="text-lg font-normal">v2.3</span>
+            AI Models Dashboard <span className="text-lg font-normal">v2.4</span>
           </h1>
         </div>
 
@@ -508,14 +508,16 @@ const AiModelsVisualization = () => {
           </div>
         </div>
 
-        {/* Test Notice */}
-        <div className={`mt-6 p-3 rounded-lg border ${
+        {/* Version Notice */}
+        <div className={`mt-6 p-4 rounded-lg border ${
           darkMode 
-            ? 'bg-yellow-900/20 border-yellow-600' 
-            : 'bg-yellow-50 border-yellow-200'
+            ? 'bg-blue-900/20 border-blue-600' 
+            : 'bg-blue-50 border-blue-200'
         }`}>
-          <p className={`text-sm ${darkMode ? 'text-yellow-200' : 'text-yellow-800'}`}>
-            🧪 <strong>v2.3:</strong> v2.3: Enhanced license display with structured hyperlinks. Dolphin models removed - no license info available
+          <p className={`text-sm ${darkMode ? 'text-blue-200' : 'text-blue-800'}`}>
+            🚀 <strong>v2.4:</strong> Added 23 new OpenRouter models including OpenAI gpt-oss-20b, Google Gemma variants, Meta Llama 3.1-3.3, DeepSeek R1 variants, Qwen 2.5/3.x models, and Moonshot Kimi models.
+            <br/>
+            <strong>v2.3:</strong> Enhanced license display with structured hyperlinks. Dolphin models removed - no license info available.
           </p>
         </div>
 
