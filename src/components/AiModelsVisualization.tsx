@@ -273,8 +273,6 @@ const AiModelsVisualization = () => {
         <div className="flex-1 space-y-4">
           {/* Version Info */}
           <div className={`text-xs text-center ${darkMode ? 'text-gray-400' : 'text-gray-500'} space-y-1`}>
-            <p>v2.3: Enhanced license display with structured hyperlinks. Dolphin models removed - no license info available</p>
-            <p>v2.2: Together AI models removed - they now require paid credits</p>
             <p className="mt-2">
               Last updated: {lastRefresh.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })} UTC • Auto-refreshes every 5 minutes
             </p>
@@ -517,9 +515,7 @@ const AiModelsVisualization = () => {
             : 'bg-yellow-50 border-yellow-200'
         }`}>
           <p className={`text-sm ${darkMode ? 'text-yellow-200' : 'text-yellow-800'}`}>
-            🧪 <strong>Test Dashboard v2.3:</strong> Enhanced license display with structured hyperlinks. 
-            Data includes {models.length} models from ai_models_main table with database-first architecture. 
-            🔗 <strong>New:</strong> Two-line license cells with clickable info and license links - no more complex frontend mapping.
+            🧪 <strong>v2.3:</strong> v2.3: Enhanced license display with structured hyperlinks. Dolphin models removed - no license info available
           </p>
         </div>
 
