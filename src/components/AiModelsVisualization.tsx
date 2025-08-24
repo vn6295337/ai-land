@@ -266,7 +266,7 @@ const AiModelsVisualization = () => {
           </button>
           
           <h1 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-            AI Models Dashboard <span className="text-lg font-normal">v2.5</span>
+            AI Models Dashboard <span className="text-lg font-normal">v2.6</span>
           </h1>
         </div>
 
@@ -515,9 +515,9 @@ const AiModelsVisualization = () => {
             : 'bg-blue-50 border-blue-200'
         }`}>
           <p className={`text-sm ${darkMode ? 'text-blue-200' : 'text-blue-800'}`}>
-            <strong>v2.5:</strong> Added 23 more new OpenRouter free models.
+            <strong>v2.6:</strong> Removed 10 deprecated models.
             <br/>
-            <strong>v2.4:</strong> Added 23 new OpenRouter models including OpenAI gpt-oss-20b, Google Gemma variants, Meta Llama 3.1-3.3, DeepSeek R1 variants, Qwen 2.5/3.x models, and Moonshot Kimi models.
+            <strong>v2.5:</strong> Added 23 more new OpenRouter free models.
           </p>
         </div>
 
