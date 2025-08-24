@@ -1,8 +1,8 @@
 import React from 'react';
-import AiModelsVisualization_working_version from '../components/AiModelsVisualization_working_version';
+import AiModelsVisualization from '../components/AiModelsVisualization';
 
 const TestWorking = () => {
-  return <AiModelsVisualization_working_version />;
+  return <AiModelsVisualization />;
 };
 
 export default TestWorking;
