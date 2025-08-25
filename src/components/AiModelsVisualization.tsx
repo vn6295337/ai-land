@@ -259,7 +259,7 @@ const AiModelsVisualization = () => {
           </button>
           
           <h1 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-            AI Models Dashboard <span className="text-lg font-normal">v2.7</span>
+            AI Models Dashboard <span className="text-lg font-normal">v2.8</span>
           </h1>
         </div>
 
@@ -501,9 +501,8 @@ const AiModelsVisualization = () => {
             : 'bg-blue-50 border-blue-200'
         }`}>
           <p className={`text-sm ${darkMode ? 'text-blue-200' : 'text-blue-800'}`}>
-            <strong>v2.7:</strong> Added 8 models from Google, including imagen and veo. Removed official URL column. Instead Model Provider is clickable with official URLs.
+            <strong>v2.8:</strong> Enhanced Google and Groq model coverage with improved data quality, licensing compliance, and production-ready filtering.
             <br/>
-            <strong>v2.6:</strong> Removed 10 deprecated models.
           </p>
         </div>
 
