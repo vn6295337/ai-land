@@ -259,7 +259,7 @@ const AiModelsVisualization = () => {
           </button>
           
           <h1 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-            AI Models Dashboard <span className="text-lg font-normal">v2.8</span>
+            AI Models Dashboard <span className="text-lg font-normal">v2.9</span>
           </h1>
         </div>
 
@@ -501,7 +501,7 @@ const AiModelsVisualization = () => {
             : 'bg-blue-50 border-blue-200'
         }`}>
           <p className={`text-sm ${darkMode ? 'text-blue-200' : 'text-blue-800'}`}>
-            <strong>v2.8:</strong> Enhanced Google and Groq model coverage with improved data quality, licensing compliance, and production-ready filtering.
+            <strong>v2.9:</strong> OpenRouter expanded free model offerings to Llama 3.3 8B Instruct, Llama 4 Scout, Llama 4 Maverick.
             <br/>
           </p>
         </div>
