@@ -501,7 +501,7 @@ const AiModelsVisualization = () => {
             : 'bg-blue-50 border-blue-200'
         }`}>
           <p className={`text-sm ${darkMode ? 'text-blue-200' : 'text-blue-800'}`}>
-            <strong>beta mode:</strong> Expanded to include additional Google models. Removed Groq preview models.
+            <strong>beta mode:</strong> Expanded to include additional Google models.
             <br/>
           </p>
         </div>
