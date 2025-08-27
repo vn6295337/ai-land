@@ -259,7 +259,7 @@ const AiModelsVisualization = () => {
           </button>
           
           <h1 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-            AI Models Dashboard <span className="text-lg font-normal">v2.9</span>
+            AI Models Dashboard <span className="text-lg font-normal">beta</span>
           </h1>
         </div>
 
@@ -267,7 +267,7 @@ const AiModelsVisualization = () => {
           {/* Version Info */}
           <div className={`text-xs text-center ${darkMode ? 'text-gray-400' : 'text-gray-500'} space-y-1`}>
             <p className="mt-2">
-              Last updated: {lastRefresh.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })} UTC • Auto-refreshes every 5 minutes
+              Last updated: {lastRefresh.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })} UTC •
             </p>
           </div>
 
@@ -501,7 +501,7 @@ const AiModelsVisualization = () => {
             : 'bg-blue-50 border-blue-200'
         }`}>
           <p className={`text-sm ${darkMode ? 'text-blue-200' : 'text-blue-800'}`}>
-            <strong>v2.9:</strong> OpenRouter expanded free model offerings to Llama 3.3 8B Instruct, Llama 4 Scout, Llama 4 Maverick.
+            <strong>beta mode:</strong> Expanded to include additional Google models. Removed Groq preview models.
             <br/>
           </p>
         </div>
