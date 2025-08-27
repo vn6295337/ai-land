@@ -6,7 +6,7 @@ const AiModelsVisualization = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(true);
   const [columnFilters, setColumnFilters] = useState({
     inferenceProvider: new Set<string>(),
     modelProvider: new Set<string>(), 
