@@ -259,7 +259,7 @@ const AiModelsVisualization = () => {
           </button>
           
           <h1 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-            AI Models Dashboard <span className="text-lg font-normal">beta</span>
+            Free AI Models Tracker <span className="text-lg font-normal">beta</span>
           </h1>
         </div>
 
@@ -267,7 +267,7 @@ const AiModelsVisualization = () => {
           {/* Version Info */}
           <div className={`text-xs text-center ${darkMode ? 'text-gray-400' : 'text-gray-500'} space-y-1`}>
             <p className="mt-2">
-              Last updated: {lastRefresh.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })} UTC •
+              Last updated: August 28, 2025
             </p>
           </div>
 
@@ -501,7 +501,7 @@ const AiModelsVisualization = () => {
             : 'bg-blue-50 border-blue-200'
         }`}>
           <p className={`text-sm ${darkMode ? 'text-blue-200' : 'text-blue-800'}`}>
-            <strong>beta mode:</strong> Expanded to include additional Google models.
+            <strong>beta:</strong> Expanded to include additional Google models. Removed Groq preview models.
             <br/>
           </p>
         </div>

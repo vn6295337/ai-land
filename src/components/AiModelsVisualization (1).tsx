@@ -6,13 +6,12 @@ const AiModelsVisualization = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(true);
   const [columnFilters, setColumnFilters] = useState({
     inferenceProvider: new Set<string>(),
     modelProvider: new Set<string>(), 
     modelName: new Set<string>(),
     modelProviderCountry: new Set<string>(),
-    officialUrl: new Set<string>(),
     inputModalities: new Set<string>(),
     outputModalities: new Set<string>(),
     license: new Set<string>(),
@@ -75,7 +74,6 @@ const AiModelsVisualization = () => {
         (columnKey === 'modelProvider' || columnFilters.modelProvider.size === 0 || columnFilters.modelProvider.has(modelProvider)) &&
         (columnKey === 'modelName' || columnFilters.modelName.size === 0 || columnFilters.modelName.has(modelName)) &&
         (columnKey === 'modelProviderCountry' || columnFilters.modelProviderCountry.size === 0 || columnFilters.modelProviderCountry.has(modelProviderCountry)) &&
-        (columnKey === 'officialUrl' || columnFilters.officialUrl.size === 0 || columnFilters.officialUrl.has(officialUrl)) &&
         (columnKey === 'inputModalities' || columnFilters.inputModalities.size === 0 || columnFilters.inputModalities.has(inputModalities)) &&
         (columnKey === 'outputModalities' || columnFilters.outputModalities.size === 0 || columnFilters.outputModalities.has(outputModalities)) &&
         (columnKey === 'license' || columnFilters.license.size === 0 || columnFilters.license.has(license)) &&
@@ -98,9 +96,6 @@ const AiModelsVisualization = () => {
           break;
         case 'modelProviderCountry':
           value = model.model_provider_country || 'Unknown';
-          break;
-        case 'officialUrl':
-          value = model.official_url || 'N/A';
           break;
         case 'inputModalities':
           value = model.input_modalities || 'Unknown';
@@ -129,7 +124,6 @@ const AiModelsVisualization = () => {
     const modelProvider = model.model_provider || 'Unknown';
     const modelName = model.human_readable_name || 'Unknown';
     const modelProviderCountry = model.model_provider_country || 'Unknown';
-    const officialUrl = model.official_url || 'N/A';
     const inputModalities = model.input_modalities || 'Unknown';
     const outputModalities = model.output_modalities || 'Unknown';
     const license = model.license_name || 'N/A';
@@ -146,7 +140,6 @@ const AiModelsVisualization = () => {
       (columnFilters.modelProvider.size === 0 || columnFilters.modelProvider.has(modelProvider)) &&
       (columnFilters.modelName.size === 0 || columnFilters.modelName.has(modelName)) &&
       (columnFilters.modelProviderCountry.size === 0 || columnFilters.modelProviderCountry.has(modelProviderCountry)) &&
-      (columnFilters.officialUrl.size === 0 || columnFilters.officialUrl.has(officialUrl)) &&
       (columnFilters.inputModalities.size === 0 || columnFilters.inputModalities.has(inputModalities)) &&
       (columnFilters.outputModalities.size === 0 || columnFilters.outputModalities.has(outputModalities)) &&
       (columnFilters.license.size === 0 || columnFilters.license.has(license)) &&
@@ -266,7 +259,7 @@ const AiModelsVisualization = () => {
           </button>
           
           <h1 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-            AI Models Dashboard <span className="text-lg font-normal">v2.7</span>
+            AI Models Dashboard <span className="text-lg font-normal">beta</span>
           </h1>
         </div>
 
@@ -274,7 +267,7 @@ const AiModelsVisualization = () => {
           {/* Version Info */}
           <div className={`text-xs text-center ${darkMode ? 'text-gray-400' : 'text-gray-500'} space-y-1`}>
             <p className="mt-2">
-              Last updated: {lastRefresh.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })} UTC • Auto-refreshes every 5 minutes
+              Last updated: {lastRefresh.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })} UTC •
             </p>
           </div>
 
@@ -287,7 +280,6 @@ const AiModelsVisualization = () => {
                   modelProvider: new Set<string>(),
                   modelName: new Set<string>(),
                   modelProviderCountry: new Set<string>(),
-                  officialUrl: new Set<string>(),
                   inputModalities: new Set<string>(),
                   outputModalities: new Set<string>(),
                   license: new Set<string>(),
@@ -317,7 +309,6 @@ const AiModelsVisualization = () => {
                       { key: 'modelProvider', label: 'Model Provider', className: 'min-w-[100px] max-w-[120px]' },
                       { key: 'modelName', label: 'Model Name', className: 'min-w-[200px] max-w-[300px]' },
                       { key: 'modelProviderCountry', label: 'Country of Origin', className: 'min-w-[120px] max-w-[150px]' },
-                      { key: 'officialUrl', label: 'Official URL', className: 'min-w-[100px] max-w-[120px]' },
                       { key: 'inputModalities', label: 'Input Type', className: 'min-w-[100px] max-w-[130px]' },
                       { key: 'outputModalities', label: 'Output Type', className: 'min-w-[100px] max-w-[130px]' },
                       { key: 'license', label: 'License', className: 'min-w-[80px] max-w-[100px]' },
@@ -392,31 +383,26 @@ const AiModelsVisualization = () => {
                       } ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-blue-50'} transition-colors`}>
                         <td className={`py-3 px-4 text-sm font-mono ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{index + 1}</td>
                         <td className={`py-3 px-4 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'} min-w-[100px] max-w-[120px] truncate`}>{model.inference_provider || 'Unknown'}</td>
-                        <td className={`py-3 px-4 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'} min-w-[100px] max-w-[120px] truncate`}>{model.model_provider || 'Unknown'}</td>
-                        <td className={`py-3 px-4 text-sm font-medium ${darkMode ? 'text-white' : 'text-gray-900'} min-w-[200px] max-w-[300px]`}>{model.human_readable_name || 'Unknown'}</td>
-                        <td className={`py-3 px-4 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'} min-w-[120px] max-w-[150px] truncate`}>{model.model_provider_country || 'Unknown'}</td>
-                        <td className="py-3 px-4 text-sm min-w-[100px] max-w-[120px]">
+                        <td className={`py-3 px-4 text-sm min-w-[100px] max-w-[120px] truncate`}>
                           {(() => {
                             const officialUrl = getOfficialUrl(model);
+                            const providerName = model.model_provider || 'Unknown';
                             return officialUrl && officialUrl.startsWith('http') ? (
                               <a 
                                 href={officialUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                title="Visit Official Page"
-                                className={`inline-flex items-center justify-center w-8 h-8 rounded-full transition-colors ${
-                                  darkMode 
-                                    ? 'bg-green-600 hover:bg-green-500 text-white' 
-                                    : 'bg-green-600 hover:bg-green-700 text-white'
-                                }`}
+                                className={`${darkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-800'} hover:underline`}
                               >
-                                <ExternalLink className="w-4 h-4" />
+                                {providerName}
                               </a>
                             ) : (
-                              <span className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{officialUrl || 'N/A'}</span>
+                              <span className={`${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>{providerName}</span>
                             );
-                          })()}
+                          })()} 
                         </td>
+                        <td className={`py-3 px-4 text-sm font-medium ${darkMode ? 'text-white' : 'text-gray-900'} min-w-[200px] max-w-[300px]`}>{model.human_readable_name || 'Unknown'}</td>
+                        <td className={`py-3 px-4 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'} min-w-[120px] max-w-[150px] truncate`}>{model.model_provider_country || 'Unknown'}</td>
                         <td className={`py-3 px-4 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'} min-w-[100px] max-w-[130px] truncate`}>{model.input_modalities || 'Unknown'}</td>
                         <td className={`py-3 px-4 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'} min-w-[100px] max-w-[130px] truncate`}>{model.output_modalities || 'Unknown'}</td>
                         <td className="py-3 px-4 text-sm min-w-[80px] max-w-[100px]">
@@ -515,9 +501,8 @@ const AiModelsVisualization = () => {
             : 'bg-blue-50 border-blue-200'
         }`}>
           <p className={`text-sm ${darkMode ? 'text-blue-200' : 'text-blue-800'}`}>
-            <strong>v2.7:</strong> Added 8 models from Google, including imagen and veo.
+            <strong>beta mode:</strong> Expanded to include additional Google models.
             <br/>
-            <strong>v2.6:</strong> Removed 10 deprecated models.
           </p>
         </div>
 
