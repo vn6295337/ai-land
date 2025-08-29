@@ -64,8 +64,8 @@ const AiModelsVisualization = () => {
       const modelName = model.human_readable_name || 'Unknown';
       const modelProviderCountry = model.model_provider_country || 'Unknown';
       const officialUrl = model.official_url || 'N/A';
-      const inputModalities = model.input_modalities || 'Unknown';
-      const outputModalities = model.output_modalities || 'Unknown';
+      const inputModalities = standardizeModalities(model.input_modalities);
+      const outputModalities = standardizeModalities(model.output_modalities);
       const license = model.license_name || 'N/A';
       const rateLimits = model.rate_limits || 'N/A';
       const apiAccess = model.provider_api_access || 'N/A';
@@ -99,10 +99,10 @@ const AiModelsVisualization = () => {
           value = model.model_provider_country || 'Unknown';
           break;
         case 'inputModalities':
-          value = model.input_modalities || 'Unknown';
+          value = standardizeModalities(model.input_modalities);
           break;
         case 'outputModalities':
-          value = model.output_modalities || 'Unknown';
+          value = standardizeModalities(model.output_modalities);
           break;
         case 'license':
           value = model.license_name || 'N/A';
@@ -135,8 +135,8 @@ const AiModelsVisualization = () => {
       case 'modelProvider': return model.model_provider || 'Unknown';
       case 'modelName': return model.human_readable_name || 'Unknown';
       case 'modelProviderCountry': return model.model_provider_country || 'Unknown';
-      case 'inputModalities': return model.input_modalities || 'Unknown';
-      case 'outputModalities': return model.output_modalities || 'Unknown';
+      case 'inputModalities': return standardizeModalities(model.input_modalities);
+      case 'outputModalities': return standardizeModalities(model.output_modalities);
       case 'license': return model.license_name || 'N/A';
       case 'rateLimits': return model.rate_limits || 'N/A';
       case 'apiAccess': return model.provider_api_access || 'N/A';
@@ -150,8 +150,8 @@ const AiModelsVisualization = () => {
     const modelProvider = model.model_provider || 'Unknown';
     const modelName = model.human_readable_name || 'Unknown';
     const modelProviderCountry = model.model_provider_country || 'Unknown';
-    const inputModalities = model.input_modalities || 'Unknown';
-    const outputModalities = model.output_modalities || 'Unknown';
+    const inputModalities = standardizeModalities(model.input_modalities);
+    const outputModalities = standardizeModalities(model.output_modalities);
     const license = model.license_name || 'N/A';
     const rateLimits = model.rate_limits || 'N/A';
     const apiAccess = model.provider_api_access || 'N/A';
@@ -282,6 +282,27 @@ const AiModelsVisualization = () => {
     return model.official_url;
   };
 
+  // Standardize input/output modality formatting
+  const standardizeModalities = (modalities: string | null | undefined): string => {
+    if (!modalities || modalities === 'Unknown') return 'Unknown';
+    
+    // Split by common separators and normalize
+    const parts = modalities
+      .split(/[,&]+/)
+      .map(part => part.trim())
+      .map(part => {
+        // Capitalize first letter and make rest lowercase
+        return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+      })
+      .filter(part => part.length > 0);
+    
+    // Remove duplicates and sort
+    const uniqueParts = Array.from(new Set(parts)).sort();
+    
+    // Join with comma and space
+    return uniqueParts.join(', ');
+  };
+
   return (
     <div className={`min-h-screen py-4 ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex flex-col">
@@ -306,11 +327,8 @@ const AiModelsVisualization = () => {
         </div>
 
         <div className="flex-1 space-y-4">
-          {/* Version Info and Stats */}
-          <div className={`text-xs text-center ${darkMode ? 'text-gray-400' : 'text-gray-500'} space-y-1`}>
-            <p className="mt-2">
-              Last updated: August 28, 2025
-            </p>
+          {/* Model Count Row */}
+          <div className={`text-sm text-center ${darkMode ? 'text-gray-300' : 'text-gray-600'} space-y-1`}>
             <p className="mt-1">
               Total: {filteredModels.length} models | By inference provider: {(() => {
                 const providerCounts = filteredModels.reduce((acc: {[key: string]: number}, model) => {
@@ -334,6 +352,13 @@ const AiModelsVisualization = () => {
                   .map(([provider, count]) => `${provider}: ${count}`)
                   .join(', ');
               })()} 
+            </p>
+          </div>
+
+          {/* Last Updated Row */}
+          <div className={`text-xs text-center ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+            <p className="mt-2">
+              Last updated: August 28, 2025
             </p>
           </div>
 
@@ -479,8 +504,8 @@ const AiModelsVisualization = () => {
                         </td>
                         <td className={`py-3 px-4 text-sm font-medium ${darkMode ? 'text-white' : 'text-gray-900'} min-w-[200px] max-w-[300px]`}>{model.human_readable_name || 'Unknown'}</td>
                         <td className={`py-3 px-4 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'} min-w-[120px] max-w-[150px] truncate`}>{model.model_provider_country || 'Unknown'}</td>
-                        <td className={`py-3 px-4 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'} min-w-[100px] max-w-[130px] truncate`}>{model.input_modalities || 'Unknown'}</td>
-                        <td className={`py-3 px-4 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'} min-w-[100px] max-w-[130px] truncate`}>{model.output_modalities || 'Unknown'}</td>
+                        <td className={`py-3 px-4 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'} min-w-[100px] max-w-[130px] truncate`}>{standardizeModalities(model.input_modalities)}</td>
+                        <td className={`py-3 px-4 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'} min-w-[100px] max-w-[130px] truncate`}>{standardizeModalities(model.output_modalities)}</td>
                         <td className="py-3 px-4 text-sm min-w-[80px] max-w-[100px]">
                           <div className="text-center">
                             {/* Top line: Info text with URL */}
