@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { ChevronDown, ChevronRight, ExternalLink, Filter, X, Moon, Sun } from 'lucide-react';
+import { ChevronDown, ChevronRight, ExternalLink, Filter, X, Moon, Sun, ChevronUp } from 'lucide-react';
 
 const AiModelsVisualization = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [darkMode, setDarkMode] = useState(true);
+  const [sortConfig, setSortConfig] = useState<{key: string, direction: 'asc' | 'desc'} | null>(null);
   const [columnFilters, setColumnFilters] = useState({
     inferenceProvider: new Set<string>(),
     modelProvider: new Set<string>(), 
@@ -118,6 +119,31 @@ const AiModelsVisualization = () => {
     return Array.from(values).sort();
   };
 
+  // Sort function
+  const handleSort = (columnKey: string) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === columnKey && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key: columnKey, direction });
+  };
+
+  // Get sortable value for a model based on column key
+  const getSortValue = (model: any, columnKey: string) => {
+    switch(columnKey) {
+      case 'inferenceProvider': return model.inference_provider || 'Unknown';
+      case 'modelProvider': return model.model_provider || 'Unknown';
+      case 'modelName': return model.human_readable_name || 'Unknown';
+      case 'modelProviderCountry': return model.model_provider_country || 'Unknown';
+      case 'inputModalities': return model.input_modalities || 'Unknown';
+      case 'outputModalities': return model.output_modalities || 'Unknown';
+      case 'license': return model.license_name || 'N/A';
+      case 'rateLimits': return model.rate_limits || 'N/A';
+      case 'apiAccess': return model.provider_api_access || 'N/A';
+      default: return '';
+    }
+  };
+
   // Filter models based on current filters
   const filteredModels = models.filter(model => {
     const inferenceProvider = model.inference_provider || 'Unknown';
@@ -146,6 +172,19 @@ const AiModelsVisualization = () => {
       (columnFilters.rateLimits.size === 0 || columnFilters.rateLimits.has(rateLimits)) &&
       (columnFilters.apiAccess.size === 0 || columnFilters.apiAccess.has(apiAccess))
     );
+  }).sort((a, b) => {
+    if (!sortConfig) return 0;
+    
+    const aValue = getSortValue(a, sortConfig.key);
+    const bValue = getSortValue(b, sortConfig.key);
+    
+    if (aValue < bValue) {
+      return sortConfig.direction === 'asc' ? -1 : 1;
+    }
+    if (aValue > bValue) {
+      return sortConfig.direction === 'asc' ? 1 : -1;
+    }
+    return 0;
   });
 
   // Toggle filter value
@@ -261,13 +300,40 @@ const AiModelsVisualization = () => {
           <h1 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
             Free AI Models Tracker <span className="text-lg font-normal">beta</span>
           </h1>
+          <p className={`text-sm mt-2 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+            Listed models are free to use with free inferencing and API accessible for commercial purposes<a href="#legal-disclaimer" className={`${darkMode ? 'text-blue-400' : 'text-blue-600'}`}>*</a>
+          </p>
         </div>
 
         <div className="flex-1 space-y-4">
-          {/* Version Info */}
+          {/* Version Info and Stats */}
           <div className={`text-xs text-center ${darkMode ? 'text-gray-400' : 'text-gray-500'} space-y-1`}>
             <p className="mt-2">
               Last updated: August 28, 2025
+            </p>
+            <p className="mt-1">
+              Total: {filteredModels.length} models | By inference provider: {(() => {
+                const providerCounts = filteredModels.reduce((acc: {[key: string]: number}, model) => {
+                  const provider = model.inference_provider || 'Unknown';
+                  acc[provider] = (acc[provider] || 0) + 1;
+                  return acc;
+                }, {});
+                return Object.entries(providerCounts)
+                  .sort(([,a], [,b]) => b - a)
+                  .map(([provider, count]) => `${provider}: ${count}`)
+                  .join(', ');
+              })()} | Top model providers: {(() => {
+                const modelProviderCounts = filteredModels.reduce((acc: {[key: string]: number}, model) => {
+                  const provider = model.model_provider || 'Unknown';
+                  acc[provider] = (acc[provider] || 0) + 1;
+                  return acc;
+                }, {});
+                return Object.entries(modelProviderCounts)
+                  .sort(([,a], [,b]) => b - a)
+                  .slice(0, 3)
+                  .map(([provider, count]) => `${provider}: ${count}`)
+                  .join(', ');
+              })()} 
             </p>
           </div>
 
@@ -317,7 +383,17 @@ const AiModelsVisualization = () => {
                     ].map((column) => (
                       <th key={column.key} className={`text-left py-3 px-4 font-semibold ${darkMode ? 'text-white' : 'text-gray-900'} relative ${column.className || ''}`}>
                         <div className="flex items-center justify-between">
-                          <span>{column.label}</span>
+                          <button 
+                            onClick={() => handleSort(column.key)}
+                            className={`flex items-center space-x-1 hover:${darkMode ? 'text-gray-300' : 'text-gray-700'}`}
+                          >
+                            <span>{column.label}</span>
+                            {sortConfig?.key === column.key && (
+                              sortConfig.direction === 'asc' ? 
+                                <ChevronUp className="w-4 h-4" /> : 
+                                <ChevronDown className="w-4 h-4" />
+                            )}
+                          </button>
                           <div className="relative">
                             <button
                               onClick={() => setOpenFilter(openFilter === column.key ? null : column.key)}
@@ -507,7 +583,7 @@ const AiModelsVisualization = () => {
         </div>
 
         {/* Legal Disclaimer */}
-        <div className={`mt-8 pt-6 border-t rounded-lg p-4 ${
+        <div id="legal-disclaimer" className={`mt-8 pt-6 border-t rounded-lg p-4 ${
           darkMode 
             ? 'border-gray-600 bg-gray-800' 
             : 'border-gray-300 bg-gray-50'
