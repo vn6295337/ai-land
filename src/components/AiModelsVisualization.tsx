@@ -232,6 +232,27 @@ const AiModelsVisualization = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // Standardize input/output modality formatting
+  const standardizeModalities = (modalities: string | null | undefined): string => {
+    if (!modalities || modalities === 'Unknown') return 'Unknown';
+    
+    // Split by common separators and normalize
+    const parts = modalities
+      .split(/[,&]+/)
+      .map(part => part.trim())
+      .map(part => {
+        // Capitalize first letter and make rest lowercase
+        return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+      })
+      .filter(part => part.length > 0);
+    
+    // Remove duplicates and sort
+    const uniqueParts = Array.from(new Set(parts)).sort();
+    
+    // Join with comma and space
+    return uniqueParts.join(', ');
+  };
+
   // Close filter dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -280,27 +301,6 @@ const AiModelsVisualization = () => {
       return 'https://www.moonshot.ai/';
     }
     return model.official_url;
-  };
-
-  // Standardize input/output modality formatting
-  const standardizeModalities = (modalities: string | null | undefined): string => {
-    if (!modalities || modalities === 'Unknown') return 'Unknown';
-    
-    // Split by common separators and normalize
-    const parts = modalities
-      .split(/[,&]+/)
-      .map(part => part.trim())
-      .map(part => {
-        // Capitalize first letter and make rest lowercase
-        return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
-      })
-      .filter(part => part.length > 0);
-    
-    // Remove duplicates and sort
-    const uniqueParts = Array.from(new Set(parts)).sort();
-    
-    // Join with comma and space
-    return uniqueParts.join(', ');
   };
 
   return (
