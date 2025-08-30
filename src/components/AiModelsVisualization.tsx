@@ -267,7 +267,7 @@ const AiModelsVisualization = () => {
           {/* Version Info */}
           <div className={`text-xs text-center ${darkMode ? 'text-gray-400' : 'text-gray-500'} space-y-1`}>
             <p className="mt-2">
-              Last updated: August 28, 2025
+              Last updated: August 30, 2025
             </p>
           </div>
 
@@ -501,7 +501,7 @@ const AiModelsVisualization = () => {
             : 'bg-blue-50 border-blue-200'
         }`}>
           <p className={`text-sm ${darkMode ? 'text-blue-200' : 'text-blue-800'}`}>
-            <strong>beta:</strong> Expanded to include additional Google models. Removed Groq preview models.
+            <strong>beta:</strong> expanded to include 2 new models from OpenRouter - GPT OSS 120B and DeepSeek V3.1.
             <br/>
           </p>
         </div>
