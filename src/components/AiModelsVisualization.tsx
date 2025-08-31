@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { ChevronDown, ChevronRight, ExternalLink, Filter, X, Moon, Sun } from 'lucide-react';
+import { ChevronDown, ChevronRight, ExternalLink, Filter, X, Moon, Sun, BarChart3 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const AiModelsVisualization = () => {
   const [loading, setLoading] = useState(true);
@@ -248,6 +249,18 @@ const AiModelsVisualization = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex flex-col">
         {/* Header */}
         <div className="text-center mb-4 relative">
+          {/* Analytics Link */}
+          <Link
+            to="/analytics"
+            className={`absolute left-0 top-0 inline-flex items-center px-3 py-2 rounded-lg transition-colors ${
+              darkMode ? 'bg-gray-800 text-blue-400 hover:bg-gray-700' : 'bg-white text-blue-600 hover:bg-gray-100'
+            }`}
+            title="View Analytics Dashboard"
+          >
+            <BarChart3 size={20} className="mr-2" />
+            Analytics
+          </Link>
+
           {/* Dark Mode Toggle */}
           <button
             onClick={() => setDarkMode(!darkMode)}

@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Analytics } from "@vercel/analytics/react";
 import Index from "./pages/Index";
+import AnalyticsPage from "./pages/Analytics";
 import Executive from "./pages/Executive";
 import TestCommit from "./pages/TestCommit";
 import TestWorking from "./pages/TestWorking";
@@ -20,6 +21,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/analytics" element={<AnalyticsPage />} />
           <Route path="/executive" element={<Executive />} />
           <Route path="/test-commit" element={<TestCommit />} />
           <Route path="/test-working" element={<TestWorking />} />
