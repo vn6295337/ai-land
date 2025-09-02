@@ -132,7 +132,7 @@ const Analytics = () => {
                 <strong>Analytics Dashboard:</strong> Track model count changes over time with provider-level filtering.
               </p>
               <p className="mb-2">
-                <strong>Data Collection:</strong> Automatically captures snapshots every 5 minutes when the main dashboard refreshes.
+                <strong>Data Collection:</strong> Automatically captures snapshots when the main dashboard refreshes.
               </p>
               <p>
                 <strong>Last Refresh:</strong> {lastRefresh.toLocaleString('en-US', { 

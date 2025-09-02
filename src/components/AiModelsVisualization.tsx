@@ -34,11 +34,6 @@ const AiModelsVisualization = () => {
     apiAccess: ''
   });
   
-  // Sorting state
-  const [sortConfig, setSortConfig] = useState<{
-    key: string;
-    direction: 'asc' | 'desc';
-  } | null>(null);
 
   const fetchModelData = async () => {
     try {
@@ -138,57 +133,36 @@ const AiModelsVisualization = () => {
     return Array.from(values).sort();
   };
 
-  // Filter and sort models based on current filters and sort configuration
-  const filteredAndSortedModels = (() => {
-    // First apply filters
-    let filtered = models.filter(model => {
-      const inferenceProvider = model.inference_provider || 'Unknown';
-      const modelProvider = model.model_provider || 'Unknown';
-      const modelName = model.human_readable_name || 'Unknown';
-      const modelProviderCountry = model.model_provider_country || 'Unknown';
-      const inputModalities = model.input_modalities || 'Unknown';
-      const outputModalities = model.output_modalities || 'Unknown';
-      const license = model.license_name || 'N/A';
-      const rateLimits = model.rate_limits || 'N/A';
-      const apiAccess = model.provider_api_access || 'N/A';
+  // Filter models based on current filters
+  const filteredModels = models.filter(model => {
+    const inferenceProvider = model.inference_provider || 'Unknown';
+    const modelProvider = model.model_provider || 'Unknown';
+    const modelName = model.human_readable_name || 'Unknown';
+    const modelProviderCountry = model.model_provider_country || 'Unknown';
+    const inputModalities = model.input_modalities || 'Unknown';
+    const outputModalities = model.output_modalities || 'Unknown';
+    const license = model.license_name || 'N/A';
+    const rateLimits = model.rate_limits || 'N/A';
+    const apiAccess = model.provider_api_access || 'N/A';
 
-      // Filter out Dolphin models from Cognitive Computations
-      if (modelProvider === 'Cognitive Computations' && modelName.toLowerCase().includes('dolphin')) {
-        return false;
-      }
-
-      // Apply checkbox filters
-      return (
-        (columnFilters.inferenceProvider.size === 0 || columnFilters.inferenceProvider.has(inferenceProvider)) &&
-        (columnFilters.modelProvider.size === 0 || columnFilters.modelProvider.has(modelProvider)) &&
-        (columnFilters.modelName.size === 0 || columnFilters.modelName.has(modelName)) &&
-        (columnFilters.modelProviderCountry.size === 0 || columnFilters.modelProviderCountry.has(modelProviderCountry)) &&
-        (columnFilters.inputModalities.size === 0 || columnFilters.inputModalities.has(inputModalities)) &&
-        (columnFilters.outputModalities.size === 0 || columnFilters.outputModalities.has(outputModalities)) &&
-        (columnFilters.license.size === 0 || columnFilters.license.has(license)) &&
-        (columnFilters.rateLimits.size === 0 || columnFilters.rateLimits.has(rateLimits)) &&
-        (columnFilters.apiAccess.size === 0 || columnFilters.apiAccess.has(apiAccess))
-      );
-    });
-
-    // Then apply sorting
-    if (sortConfig) {
-      filtered.sort((a, b) => {
-        const aValue = getSortValue(a, sortConfig.key).toString().toLowerCase();
-        const bValue = getSortValue(b, sortConfig.key).toString().toLowerCase();
-        
-        if (aValue < bValue) {
-          return sortConfig.direction === 'asc' ? -1 : 1;
-        }
-        if (aValue > bValue) {
-          return sortConfig.direction === 'asc' ? 1 : -1;
-        }
-        return 0;
-      });
+    // Filter out Dolphin models from Cognitive Computations
+    if (modelProvider === 'Cognitive Computations' && modelName.toLowerCase().includes('dolphin')) {
+      return false;
     }
 
-    return filtered;
-  })();
+    // Apply checkbox filters
+    return (
+      (columnFilters.inferenceProvider.size === 0 || columnFilters.inferenceProvider.has(inferenceProvider)) &&
+      (columnFilters.modelProvider.size === 0 || columnFilters.modelProvider.has(modelProvider)) &&
+      (columnFilters.modelName.size === 0 || columnFilters.modelName.has(modelName)) &&
+      (columnFilters.modelProviderCountry.size === 0 || columnFilters.modelProviderCountry.has(modelProviderCountry)) &&
+      (columnFilters.inputModalities.size === 0 || columnFilters.inputModalities.has(inputModalities)) &&
+      (columnFilters.outputModalities.size === 0 || columnFilters.outputModalities.has(outputModalities)) &&
+      (columnFilters.license.size === 0 || columnFilters.license.has(license)) &&
+      (columnFilters.rateLimits.size === 0 || columnFilters.rateLimits.has(rateLimits)) &&
+      (columnFilters.apiAccess.size === 0 || columnFilters.apiAccess.has(apiAccess))
+    );
+  });
 
   // Toggle filter value
   const toggleFilterValue = (columnKey: keyof typeof columnFilters, value: string) => {
@@ -231,48 +205,6 @@ const AiModelsVisualization = () => {
     );
   };
 
-  // Handle sorting - cycle through: no sort → asc → desc → no sort
-  const handleSort = (key: string) => {
-    setSortConfig(current => {
-      if (current?.key === key) {
-        // If same column, cycle through directions
-        if (current.direction === 'asc') {
-          return { key, direction: 'desc' };
-        } else {
-          // desc → no sort
-          return null;
-        }
-      }
-      // New column, start with ascending
-      return { key, direction: 'asc' };
-    });
-  };
-
-  // Get value for sorting
-  const getSortValue = (model: any, key: string) => {
-    switch (key) {
-      case 'inferenceProvider':
-        return model.inference_provider || 'Unknown';
-      case 'modelProvider':
-        return model.model_provider || 'Unknown';
-      case 'modelName':
-        return model.human_readable_name || 'Unknown';
-      case 'modelProviderCountry':
-        return model.model_provider_country || 'Unknown';
-      case 'inputModalities':
-        return model.input_modalities || 'Unknown';
-      case 'outputModalities':
-        return model.output_modalities || 'Unknown';
-      case 'license':
-        return model.license_name || 'N/A';
-      case 'rateLimits':
-        return model.rate_limits || 'N/A';
-      case 'apiAccess':
-        return model.provider_api_access || 'N/A';
-      default:
-        return '';
-    }
-  };
 
   useEffect(() => {
     const loadData = async () => {
@@ -403,7 +335,7 @@ const AiModelsVisualization = () => {
                 day: '2-digit', 
                 hour: '2-digit', 
                 minute: '2-digit'
-              })} UTC | <strong>Total Models: {filteredAndSortedModels.length}</strong>
+              })} UTC | <strong>Total Models: {filteredModels.length}</strong>
             </p>
           </div>
 
@@ -453,22 +385,7 @@ const AiModelsVisualization = () => {
                     ].map((column) => (
                       <th key={column.key} className={`text-left py-3 px-4 font-semibold ${darkMode ? 'text-white' : 'text-gray-900'} relative ${column.className || ''}`}>
                         <div className="flex items-center justify-between">
-                          <button
-                            onClick={() => handleSort(column.key)}
-                            className={`flex items-center hover:bg-opacity-10 px-2 py-1 rounded transition-colors ${
-                              sortConfig?.key === column.key
-                                ? 'text-blue-600'
-                                : darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
-                            }`}
-                            title={`Click to sort by ${column.label}`}
-                          >
-                            <span>{column.label}</span>
-                            {sortConfig?.key === column.key && (
-                              <span className="ml-2">
-                                {sortConfig?.direction === 'asc' ? '↑' : '↓'}
-                              </span>
-                            )}
-                          </button>
+                          <span>{column.label}</span>
                           <div className="relative">
                             <button
                               onClick={() => setOpenFilter(openFilter === column.key ? null : column.key)}
@@ -543,7 +460,7 @@ const AiModelsVisualization = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredAndSortedModels.map((model, index) => {
+                  {filteredModels.map((model, index) => {
                     return (
                       <tr key={index} className={`border-b ${darkMode ? 'border-gray-600' : 'border-gray-200'} ${index % 2 === 0 
                         ? darkMode ? 'bg-gray-800/50' : 'bg-gray-50/50'
@@ -635,7 +552,7 @@ const AiModelsVisualization = () => {
                 </tbody>
               </table>
               
-              {filteredAndSortedModels.length === 0 && models.length > 0 && (
+              {filteredModels.length === 0 && models.length > 0 && (
                 <div className="flex items-center justify-center py-12 text-gray-600">
                   <div className="text-center">
                     <Filter className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -650,7 +567,7 @@ const AiModelsVisualization = () => {
             {Object.values(columnFilters).some(set => set.size > 0) && (
               <div className="mt-4 p-3 rounded-lg border-l-4 bg-blue-50 border-blue-500 text-blue-800">
                 <span className="text-sm">
-                  Showing {filteredAndSortedModels.length} of {models.length} models with active filters
+                  Showing {filteredModels.length} of {models.length} models with active filters
                 </span>
               </div>
             )}
