@@ -127,7 +127,7 @@ const Analytics = () => {
         <div className="flex-1">
           {/* Analytics Info */}
           <div className={`mb-6 p-4 rounded-lg ${darkMode ? 'bg-blue-900/20 border-blue-600' : 'bg-blue-50 border-blue-200'} border`}>
-            <div className={`text-sm ${darkMode ? 'text-blue-200' : 'text-blue-800'}`}>
+            <div className={`text-base ${darkMode ? 'text-blue-200' : 'text-blue-800'}`}>
               <p className="mb-2">
                 <strong>Analytics Dashboard:</strong> Track model count changes over time with provider-level filtering.
               </p>
@@ -141,9 +141,8 @@ const Analytics = () => {
                   month: 'short', 
                   day: '2-digit', 
                   hour: '2-digit', 
-                  minute: '2-digit',
-                  timeZoneName: 'short'
-                })} | Total Models: <strong>{models.length}</strong>
+                  minute: '2-digit'
+                })} UTC | <strong>Total Models: {models.length}</strong>
               </p>
             </div>
           </div>

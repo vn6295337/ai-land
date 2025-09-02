@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { ChevronDown, ChevronRight, ExternalLink, Filter, X, Moon, Sun, BarChart3 } from 'lucide-react';
+import { ChevronDown, ChevronRight, ExternalLink, Filter, X, Moon, Sun, BarChart3, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const AiModelsVisualization = () => {
@@ -20,6 +20,25 @@ const AiModelsVisualization = () => {
     apiAccess: new Set<string>()
   });
   const [openFilter, setOpenFilter] = useState<string | null>(null);
+  
+  // Search state for filtering dropdown options
+  const [dropdownSearchTerms, setDropdownSearchTerms] = useState({
+    inferenceProvider: '',
+    modelProvider: '',
+    modelName: '',
+    modelProviderCountry: '',
+    inputModalities: '',
+    outputModalities: '',
+    license: '',
+    rateLimits: '',
+    apiAccess: ''
+  });
+  
+  // Sorting state
+  const [sortConfig, setSortConfig] = useState<{
+    key: string;
+    direction: 'asc' | 'desc';
+  } | null>(null);
 
   const fetchModelData = async () => {
     try {
@@ -119,35 +138,57 @@ const AiModelsVisualization = () => {
     return Array.from(values).sort();
   };
 
-  // Filter models based on current filters
-  const filteredModels = models.filter(model => {
-    const inferenceProvider = model.inference_provider || 'Unknown';
-    const modelProvider = model.model_provider || 'Unknown';
-    const modelName = model.human_readable_name || 'Unknown';
-    const modelProviderCountry = model.model_provider_country || 'Unknown';
-    const inputModalities = model.input_modalities || 'Unknown';
-    const outputModalities = model.output_modalities || 'Unknown';
-    const license = model.license_name || 'N/A';
-    const rateLimits = model.rate_limits || 'N/A';
-    const apiAccess = model.provider_api_access || 'N/A';
+  // Filter and sort models based on current filters and sort configuration
+  const filteredAndSortedModels = (() => {
+    // First apply filters
+    let filtered = models.filter(model => {
+      const inferenceProvider = model.inference_provider || 'Unknown';
+      const modelProvider = model.model_provider || 'Unknown';
+      const modelName = model.human_readable_name || 'Unknown';
+      const modelProviderCountry = model.model_provider_country || 'Unknown';
+      const inputModalities = model.input_modalities || 'Unknown';
+      const outputModalities = model.output_modalities || 'Unknown';
+      const license = model.license_name || 'N/A';
+      const rateLimits = model.rate_limits || 'N/A';
+      const apiAccess = model.provider_api_access || 'N/A';
 
-    // Filter out Dolphin models from Cognitive Computations
-    if (modelProvider === 'Cognitive Computations' && modelName.toLowerCase().includes('dolphin')) {
-      return false;
+      // Filter out Dolphin models from Cognitive Computations
+      if (modelProvider === 'Cognitive Computations' && modelName.toLowerCase().includes('dolphin')) {
+        return false;
+      }
+
+      // Apply checkbox filters
+      return (
+        (columnFilters.inferenceProvider.size === 0 || columnFilters.inferenceProvider.has(inferenceProvider)) &&
+        (columnFilters.modelProvider.size === 0 || columnFilters.modelProvider.has(modelProvider)) &&
+        (columnFilters.modelName.size === 0 || columnFilters.modelName.has(modelName)) &&
+        (columnFilters.modelProviderCountry.size === 0 || columnFilters.modelProviderCountry.has(modelProviderCountry)) &&
+        (columnFilters.inputModalities.size === 0 || columnFilters.inputModalities.has(inputModalities)) &&
+        (columnFilters.outputModalities.size === 0 || columnFilters.outputModalities.has(outputModalities)) &&
+        (columnFilters.license.size === 0 || columnFilters.license.has(license)) &&
+        (columnFilters.rateLimits.size === 0 || columnFilters.rateLimits.has(rateLimits)) &&
+        (columnFilters.apiAccess.size === 0 || columnFilters.apiAccess.has(apiAccess))
+      );
+    });
+
+    // Then apply sorting
+    if (sortConfig) {
+      filtered.sort((a, b) => {
+        const aValue = getSortValue(a, sortConfig.key).toString().toLowerCase();
+        const bValue = getSortValue(b, sortConfig.key).toString().toLowerCase();
+        
+        if (aValue < bValue) {
+          return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (aValue > bValue) {
+          return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
     }
 
-    return (
-      (columnFilters.inferenceProvider.size === 0 || columnFilters.inferenceProvider.has(inferenceProvider)) &&
-      (columnFilters.modelProvider.size === 0 || columnFilters.modelProvider.has(modelProvider)) &&
-      (columnFilters.modelName.size === 0 || columnFilters.modelName.has(modelName)) &&
-      (columnFilters.modelProviderCountry.size === 0 || columnFilters.modelProviderCountry.has(modelProviderCountry)) &&
-      (columnFilters.inputModalities.size === 0 || columnFilters.inputModalities.has(inputModalities)) &&
-      (columnFilters.outputModalities.size === 0 || columnFilters.outputModalities.has(outputModalities)) &&
-      (columnFilters.license.size === 0 || columnFilters.license.has(license)) &&
-      (columnFilters.rateLimits.size === 0 || columnFilters.rateLimits.has(rateLimits)) &&
-      (columnFilters.apiAccess.size === 0 || columnFilters.apiAccess.has(apiAccess))
-    );
-  });
+    return filtered;
+  })();
 
   // Toggle filter value
   const toggleFilterValue = (columnKey: keyof typeof columnFilters, value: string) => {
@@ -168,6 +209,69 @@ const AiModelsVisualization = () => {
       ...prev,
       [columnKey]: new Set<string>()
     }));
+  };
+
+  // Handle dropdown search input change
+  const handleDropdownSearchChange = (columnKey: keyof typeof dropdownSearchTerms, value: string) => {
+    setDropdownSearchTerms(prev => ({
+      ...prev,
+      [columnKey]: value
+    }));
+  };
+
+  // Filter dropdown options based on search term
+  const getFilteredDropdownOptions = (columnKey: keyof typeof columnFilters) => {
+    const allOptions = getUniqueValues(columnKey);
+    const searchTerm = dropdownSearchTerms[columnKey].toLowerCase();
+    
+    if (!searchTerm) return allOptions;
+    
+    return allOptions.filter(option => 
+      option.toLowerCase().includes(searchTerm)
+    );
+  };
+
+  // Handle sorting - cycle through: no sort → asc → desc → no sort
+  const handleSort = (key: string) => {
+    setSortConfig(current => {
+      if (current?.key === key) {
+        // If same column, cycle through directions
+        if (current.direction === 'asc') {
+          return { key, direction: 'desc' };
+        } else {
+          // desc → no sort
+          return null;
+        }
+      }
+      // New column, start with ascending
+      return { key, direction: 'asc' };
+    });
+  };
+
+  // Get value for sorting
+  const getSortValue = (model: any, key: string) => {
+    switch (key) {
+      case 'inferenceProvider':
+        return model.inference_provider || 'Unknown';
+      case 'modelProvider':
+        return model.model_provider || 'Unknown';
+      case 'modelName':
+        return model.human_readable_name || 'Unknown';
+      case 'modelProviderCountry':
+        return model.model_provider_country || 'Unknown';
+      case 'inputModalities':
+        return model.input_modalities || 'Unknown';
+      case 'outputModalities':
+        return model.output_modalities || 'Unknown';
+      case 'license':
+        return model.license_name || 'N/A';
+      case 'rateLimits':
+        return model.rate_limits || 'N/A';
+      case 'apiAccess':
+        return model.provider_api_access || 'N/A';
+      default:
+        return '';
+    }
   };
 
   useEffect(() => {
@@ -200,6 +304,18 @@ const AiModelsVisualization = () => {
       const target = event.target as HTMLElement;
       if (!target.closest('.filter-dropdown') && !target.closest('.filter-button')) {
         setOpenFilter(null);
+        // Clear dropdown search terms when closing
+        setDropdownSearchTerms({
+          inferenceProvider: '',
+          modelProvider: '',
+          modelName: '',
+          modelProviderCountry: '',
+          inputModalities: '',
+          outputModalities: '',
+          license: '',
+          rateLimits: '',
+          apiAccess: ''
+        });
       }
     };
 
@@ -278,9 +394,16 @@ const AiModelsVisualization = () => {
 
         <div className="flex-1 space-y-4">
           {/* Version Info */}
-          <div className={`text-xs text-center ${darkMode ? 'text-gray-400' : 'text-gray-500'} space-y-1`}>
+          <div className={`text-base text-center ${darkMode ? 'text-gray-400' : 'text-gray-500'} space-y-1`}>
             <p className="mt-2">
-              Last updated: August 30, 2025
+              Last Refresh: {lastRefresh.toLocaleString('en-US', { 
+                timeZone: 'UTC', 
+                year: 'numeric', 
+                month: 'short', 
+                day: '2-digit', 
+                hour: '2-digit', 
+                minute: '2-digit'
+              })} UTC | <strong>Total Models: {filteredAndSortedModels.length}</strong>
             </p>
           </div>
 
@@ -330,7 +453,22 @@ const AiModelsVisualization = () => {
                     ].map((column) => (
                       <th key={column.key} className={`text-left py-3 px-4 font-semibold ${darkMode ? 'text-white' : 'text-gray-900'} relative ${column.className || ''}`}>
                         <div className="flex items-center justify-between">
-                          <span>{column.label}</span>
+                          <button
+                            onClick={() => handleSort(column.key)}
+                            className={`flex items-center hover:bg-opacity-10 px-2 py-1 rounded transition-colors ${
+                              sortConfig?.key === column.key
+                                ? 'text-blue-600'
+                                : darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+                            }`}
+                            title={`Click to sort by ${column.label}`}
+                          >
+                            <span>{column.label}</span>
+                            {sortConfig?.key === column.key && (
+                              <span className="ml-2">
+                                {sortConfig.direction === 'asc' ? '↑' : '↓'}
+                              </span>
+                            )}
+                          </button>
                           <div className="relative">
                             <button
                               onClick={() => setOpenFilter(openFilter === column.key ? null : column.key)}
@@ -363,8 +501,25 @@ const AiModelsVisualization = () => {
                                       Clear
                                     </button>
                                   </div>
-                                  <div className="space-y-1">
-                                    {getUniqueValues(column.key as keyof typeof columnFilters).map((value) => (
+                                  
+                                  {/* Search input */}
+                                  <div className="mb-2 relative">
+                                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
+                                    <input
+                                      type="text"
+                                      placeholder="Search options..."
+                                      value={dropdownSearchTerms[column.key as keyof typeof dropdownSearchTerms]}
+                                      onChange={(e) => handleDropdownSearchChange(column.key as keyof typeof dropdownSearchTerms, e.target.value)}
+                                      className={`w-full pl-8 pr-3 py-2 text-sm border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                                        darkMode 
+                                          ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' 
+                                          : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                                      }`}
+                                    />
+                                  </div>
+                                  
+                                  <div className="space-y-1 max-h-60 overflow-y-auto">
+                                    {getFilteredDropdownOptions(column.key as keyof typeof columnFilters).map((value) => (
                                       <label key={value} className="flex items-center space-x-2 cursor-pointer">
                                         <input
                                           type="checkbox"
@@ -388,7 +543,7 @@ const AiModelsVisualization = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredModels.map((model, index) => {
+                  {filteredAndSortedModels.map((model, index) => {
                     return (
                       <tr key={index} className={`border-b ${darkMode ? 'border-gray-600' : 'border-gray-200'} ${index % 2 === 0 
                         ? darkMode ? 'bg-gray-800/50' : 'bg-gray-50/50'
@@ -480,7 +635,7 @@ const AiModelsVisualization = () => {
                 </tbody>
               </table>
               
-              {filteredModels.length === 0 && models.length > 0 && (
+              {filteredAndSortedModels.length === 0 && models.length > 0 && (
                 <div className="flex items-center justify-center py-12 text-gray-600">
                   <div className="text-center">
                     <Filter className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -495,15 +650,11 @@ const AiModelsVisualization = () => {
             {Object.values(columnFilters).some(set => set.size > 0) && (
               <div className="mt-4 p-3 rounded-lg border-l-4 bg-blue-50 border-blue-500 text-blue-800">
                 <span className="text-sm">
-                  Showing {filteredModels.length} of {models.length} models with active filters
+                  Showing {filteredAndSortedModels.length} of {models.length} models with active filters
                 </span>
               </div>
             )}
             
-            {/* Model Count */}
-            <div className="mt-4 text-center text-sm text-gray-600">
-              Total Models: {filteredModels.length}
-            </div>
           </div>
         </div>
 
