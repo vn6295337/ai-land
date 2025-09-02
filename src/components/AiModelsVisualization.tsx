@@ -465,7 +465,7 @@ const AiModelsVisualization = () => {
                             <span>{column.label}</span>
                             {sortConfig?.key === column.key && (
                               <span className="ml-2">
-                                {sortConfig.direction === 'asc' ? '↑' : '↓'}
+                                {sortConfig?.direction === 'asc' ? '↑' : '↓'}
                               </span>
                             )}
                           </button>
