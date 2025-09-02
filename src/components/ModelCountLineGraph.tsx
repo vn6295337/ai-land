@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Line } from 'react-chartjs-2';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -26,6 +27,7 @@ ChartJS.register(
 );
 
 interface HistoricalDataPoint {
+  id?: number;
   timestamp: Date;
   totalCount: number;
   providerCounts: {
@@ -46,40 +48,70 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
   const [selectedModelProviders, setSelectedModelProviders] = useState<Set<string>>(new Set());
   const [timeRange, setTimeRange] = useState<'24h' | '7d' | '30d' | 'all'>('7d');
 
-  // Storage key for historical data
-  const STORAGE_KEY = 'modelCountHistory';
-  const MAX_DATA_POINTS = 1000;
+  // No longer using localStorage - data persisted in database
 
-  // Initialize historical data from localStorage
+  // Load historical data from database
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
+    const loadHistoricalData = async () => {
       try {
-        const parsed = JSON.parse(stored).map((item: any) => ({
-          ...item,
-          timestamp: new Date(item.timestamp)
+        const { data, error } = await supabase
+          .from('analytics_history')
+          .select('*')
+          .order('timestamp', { ascending: true });
+
+        if (error) {
+          console.error('Error loading historical data:', error);
+          return;
+        }
+
+        const formattedData: HistoricalDataPoint[] = (data || []).map((item: any) => ({
+          id: item.id,
+          timestamp: new Date(item.timestamp),
+          totalCount: item.total_models,
+          providerCounts: {
+            inferenceProviders: item.inference_provider_counts,
+            modelProviders: item.model_provider_counts
+          }
         }));
-        setHistoricalData(parsed);
+
+        setHistoricalData(formattedData);
       } catch (error) {
-        console.error('Error parsing stored historical data:', error);
+        console.error('Error loading historical data:', error);
       }
-    }
+    };
+
+    loadHistoricalData();
   }, []);
 
-  // Save historical data to localStorage
-  const saveToStorage = (data: HistoricalDataPoint[]) => {
+  // Save analytics snapshot to database
+  const saveAnalyticsSnapshot = async (
+    totalModels: number,
+    inferenceProviders: { [key: string]: number },
+    modelProviders: { [key: string]: number }
+  ) => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      const { error } = await supabase.rpc('insert_analytics_snapshot', {
+        p_total_models: totalModels,
+        p_inference_provider_counts: inferenceProviders,
+        p_model_provider_counts: modelProviders
+      });
+
+      if (error) {
+        console.error('Error saving analytics snapshot:', error);
+        return false;
+      }
+      return true;
     } catch (error) {
-      console.error('Error saving historical data:', error);
+      console.error('Error saving analytics snapshot:', error);
+      return false;
     }
   };
 
-  // Track new data points when currentModels changes
+  // Track analytics snapshots only when data actually changes
   useEffect(() => {
-    if (currentModels.length > 0) {
-      const now = new Date();
-      
+    const collectAnalyticsData = async () => {
+      if (currentModels.length === 0) return;
+
       // Calculate provider counts
       const inferenceProviders: { [key: string]: number } = {};
       const modelProviders: { [key: string]: number } = {};
@@ -92,28 +124,42 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
         modelProviders[modelProvider] = (modelProviders[modelProvider] || 0) + 1;
       });
 
-      const newDataPoint: HistoricalDataPoint = {
-        timestamp: now,
-        totalCount: currentModels.length,
-        providerCounts: {
+      // Only save if this represents a meaningful change or enough time has passed
+      const shouldSave = historicalData.length === 0 || 
+        historicalData[historicalData.length - 1]?.totalCount !== currentModels.length;
+
+      if (shouldSave) {
+        const success = await saveAnalyticsSnapshot(
+          currentModels.length,
           inferenceProviders,
           modelProviders
+        );
+
+        if (success) {
+          // Reload historical data to get the latest entry
+          const { data, error } = await supabase
+            .from('analytics_history')
+            .select('*')
+            .order('timestamp', { ascending: true });
+
+          if (!error && data) {
+            const formattedData: HistoricalDataPoint[] = data.map((item: any) => ({
+              id: item.id,
+              timestamp: new Date(item.timestamp),
+              totalCount: item.total_models,
+              providerCounts: {
+                inferenceProviders: item.inference_provider_counts,
+                modelProviders: item.model_provider_counts
+              }
+            }));
+            setHistoricalData(formattedData);
+          }
         }
-      };
-
-      // Check if this is a new data point (avoid duplicates within 1 minute)
-      const isNewDataPoint = historicalData.length === 0 || 
-        now.getTime() - historicalData[historicalData.length - 1].timestamp.getTime() > 60000;
-
-      if (isNewDataPoint) {
-        const updatedData = [...historicalData, newDataPoint];
-        // Keep only the last MAX_DATA_POINTS
-        const trimmedData = updatedData.slice(-MAX_DATA_POINTS);
-        setHistoricalData(trimmedData);
-        saveToStorage(trimmedData);
       }
-    }
-  }, [currentModels]);
+    };
+
+    collectAnalyticsData();
+  }, [currentModels, historicalData]);
 
   // Get unique providers from historical data
   const availableProviders = useMemo(() => {
@@ -150,7 +196,18 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
       }
     })();
 
-    return historicalData.filter(point => point.timestamp >= cutoffTime);
+    const filtered = historicalData.filter(point => point.timestamp >= cutoffTime);
+    
+    // Debug logging
+    if (historicalData.length > 0) {
+      const oldest = new Date(Math.min(...historicalData.map(d => d.timestamp.getTime())));
+      const newest = new Date(Math.max(...historicalData.map(d => d.timestamp.getTime())));
+      console.log(`Time range: ${timeRange}, Total points: ${historicalData.length}, Filtered: ${filtered.length}`);
+      console.log(`Data spans: ${oldest.toISOString()} to ${newest.toISOString()}`);
+      console.log(`Cutoff time: ${cutoffTime.toISOString()}`);
+    }
+
+    return filtered;
   }, [historicalData, timeRange]);
 
   // Prepare chart data
@@ -246,10 +303,10 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
         type: 'time' as const,
         time: {
           displayFormats: {
-            hour: 'MMM dd HH:mm',
-            day: 'MMM dd',
-            week: 'MMM dd',
-            month: 'MMM yyyy'
+            hour: 'yyyyMMdd-hhmm a',
+            day: 'yyyyMMdd-hhmm a',
+            week: 'yyyyMMdd-hhmm a',
+            month: 'yyyyMMdd-hhmm a'
           }
         },
         grid: {
@@ -299,14 +356,31 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
   };
 
   // Clear historical data
-  const clearData = () => {
-    setHistoricalData([]);
-    localStorage.removeItem(STORAGE_KEY);
+  const clearData = async () => {
+    try {
+      const { error } = await supabase
+        .from('analytics_history')
+        .delete()
+        .neq('id', 0); // Delete all records
+      
+      if (error) {
+        console.error('Error clearing analytics data:', error);
+      } else {
+        setHistoricalData([]);
+      }
+    } catch (error) {
+      console.error('Error clearing analytics data:', error);
+    }
   };
 
   // Export data
   const exportData = () => {
-    const dataStr = JSON.stringify(historicalData, null, 2);
+    const exportableData = historicalData.map(point => ({
+      timestamp: point.timestamp.toISOString(),
+      totalCount: point.totalCount,
+      providerCounts: point.providerCounts
+    }));
+    const dataStr = JSON.stringify(exportableData, null, 2);
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(dataBlob);
     const link = document.createElement('a');
