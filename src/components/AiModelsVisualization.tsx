@@ -582,7 +582,7 @@ const AiModelsVisualization = () => {
             : 'bg-blue-50 border-blue-200'
         }`}>
           <p className={`text-sm ${darkMode ? 'text-blue-200' : 'text-blue-800'}`}>
-            <strong>beta:</strong> expanded to include 2 new models from OpenRouter - GPT OSS 120B and DeepSeek V3.1.
+            <strong>beta:</strong> Total model count reduced to 89 from 90. Reason: Sarvam-M no more available in OpenRouter.
             <br/>
           </p>
         </div>
