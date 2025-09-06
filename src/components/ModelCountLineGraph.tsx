@@ -124,11 +124,48 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
         modelProviders[modelProvider] = (modelProviders[modelProvider] || 0) + 1;
       });
 
-      // Only save if this represents a meaningful change or enough time has passed
-      const shouldSave = historicalData.length === 0 || 
-        historicalData[historicalData.length - 1]?.totalCount !== currentModels.length;
+      // More sophisticated change detection
+      const lastDataPoint = historicalData[historicalData.length - 1];
+      let shouldSave = false;
+
+      if (historicalData.length === 0) {
+        // First data point
+        shouldSave = true;
+      } else if (lastDataPoint) {
+        // Check if model count changed
+        const countChanged = lastDataPoint.totalCount !== currentModels.length;
+        
+        // Check if provider distribution changed significantly
+        const lastInferenceProviders = lastDataPoint.providerCounts.inferenceProviders;
+        const lastModelProviders = lastDataPoint.providerCounts.modelProviders;
+        
+        const inferenceProvidersChanged = JSON.stringify(lastInferenceProviders) !== JSON.stringify(inferenceProviders);
+        const modelProvidersChanged = JSON.stringify(lastModelProviders) !== JSON.stringify(modelProviders);
+        
+        // Check time since last update (only save once per hour unless data changed)
+        const lastUpdateTime = lastDataPoint.timestamp;
+        const timeSinceLastUpdate = Date.now() - lastUpdateTime.getTime();
+        const oneHour = 60 * 60 * 1000;
+        
+        shouldSave = countChanged || inferenceProvidersChanged || modelProvidersChanged || 
+                    (timeSinceLastUpdate > oneHour);
+        
+        console.log('Analytics decision:', {
+          countChanged,
+          inferenceProvidersChanged, 
+          modelProvidersChanged,
+          timeSinceLastUpdate: Math.round(timeSinceLastUpdate / 1000 / 60),
+          shouldSave
+        });
+      }
 
       if (shouldSave) {
+        console.log('Saving analytics snapshot:', {
+          totalModels: currentModels.length,
+          inferenceProviderCount: Object.keys(inferenceProviders).length,
+          modelProviderCount: Object.keys(modelProviders).length
+        });
+        
         const success = await saveAnalyticsSnapshot(
           currentModels.length,
           inferenceProviders,
@@ -155,11 +192,13 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
             setHistoricalData(formattedData);
           }
         }
+      } else {
+        console.log('Skipping analytics snapshot - no material changes detected');
       }
     };
 
     collectAnalyticsData();
-  }, [currentModels, historicalData]);
+  }, [currentModels]);
 
   // Get unique providers from historical data
   const availableProviders = useMemo(() => {
@@ -218,22 +257,29 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
       '#ec4899', '#06b6d4', '#f97316', '#84cc16', '#6366f1'
     ];
 
-    // Total count line (always shown)
-    datasets.push({
-      label: 'Total Models',
-      data: filteredData.map(point => ({
-        x: point.timestamp,
-        y: point.totalCount
-      })),
-      borderColor: colors[0],
-      backgroundColor: colors[0] + '20',
-      tension: 0.1,
-      pointRadius: 3,
-      pointHoverRadius: 6,
-      borderWidth: 2
-    });
+    // Total count line (only shown when no providers are selected)
+    const showTotalLine = selectedInferenceProviders.size === 0 && selectedModelProviders.size === 0;
+    
+    if (showTotalLine) {
+      datasets.push({
+        label: 'Total Models',
+        data: filteredData.map(point => ({
+          x: point.timestamp,
+          y: point.totalCount
+        })),
+        borderColor: colors[0],
+        backgroundColor: colors[0] + '20',
+        tension: 0.1,
+        pointRadius: 4,
+        pointHoverRadius: 8,
+        borderWidth: 2,
+        pointBackgroundColor: colors[0],
+        pointBorderColor: '#ffffff',
+        pointBorderWidth: 1
+      });
+    }
 
-    let colorIndex = 1;
+    let colorIndex = showTotalLine ? 1 : 0;
 
     // Add selected inference provider lines
     selectedInferenceProviders.forEach(provider => {
@@ -246,10 +292,13 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
         borderColor: colors[colorIndex % colors.length],
         backgroundColor: colors[colorIndex % colors.length] + '20',
         tension: 0.1,
-        pointRadius: 2,
-        pointHoverRadius: 5,
-        borderWidth: 1.5,
-        borderDash: [5, 5]
+        pointRadius: 3,
+        pointHoverRadius: 6,
+        borderWidth: 2,
+        borderDash: [5, 5],
+        pointBackgroundColor: colors[colorIndex % colors.length],
+        pointBorderColor: '#ffffff',
+        pointBorderWidth: 1
       });
       colorIndex++;
     });
@@ -265,15 +314,71 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
         borderColor: colors[colorIndex % colors.length],
         backgroundColor: colors[colorIndex % colors.length] + '20',
         tension: 0.1,
-        pointRadius: 2,
-        pointHoverRadius: 5,
-        borderWidth: 1.5,
-        borderDash: [2, 2]
+        pointRadius: 3,
+        pointHoverRadius: 6,
+        borderWidth: 2,
+        borderDash: [2, 2],
+        pointBackgroundColor: colors[colorIndex % colors.length],
+        pointBorderColor: '#ffffff',
+        pointBorderWidth: 1
       });
       colorIndex++;
     });
 
     return { datasets };
+  }, [filteredData, selectedInferenceProviders, selectedModelProviders]);
+
+  // Calculate dynamic y-axis range for better visibility of small changes
+  const yAxisConfig = useMemo(() => {
+    if (filteredData.length === 0) return { min: 0, max: 100, stepSize: 10 };
+    
+    // Determine which values to consider based on what's being displayed
+    const showTotalLine = selectedInferenceProviders.size === 0 && selectedModelProviders.size === 0;
+    
+    const allValues = filteredData.flatMap(point => [
+      ...(showTotalLine ? [point.totalCount] : []),
+      ...selectedInferenceProviders.size > 0 
+        ? Array.from(selectedInferenceProviders).map(provider => 
+            point.providerCounts.inferenceProviders[provider] || 0
+          ) 
+        : [],
+      ...selectedModelProviders.size > 0 
+        ? Array.from(selectedModelProviders).map(provider => 
+            point.providerCounts.modelProviders[provider] || 0
+          ) 
+        : []
+    ]);
+    
+    if (allValues.length === 0) return { min: 0, max: 100, stepSize: 10 };
+    
+    const minValue = Math.min(...allValues);
+    const maxValue = Math.max(...allValues);
+    const range = maxValue - minValue;
+    
+    // If range is very small, add padding to make changes visible
+    const padding = range < 5 ? Math.max(2, Math.ceil(range * 0.5)) : Math.ceil(range * 0.1);
+    
+    const adjustedMin = Math.max(0, minValue - padding);
+    const adjustedMax = maxValue + padding;
+    const adjustedRange = adjustedMax - adjustedMin;
+    
+    // Calculate dynamic step size based on the range
+    let stepSize;
+    if (adjustedRange <= 10) {
+      stepSize = 1;
+    } else if (adjustedRange <= 50) {
+      stepSize = Math.max(1, Math.ceil(adjustedRange / 10));
+    } else if (adjustedRange <= 100) {
+      stepSize = Math.max(5, Math.ceil(adjustedRange / 15));
+    } else {
+      stepSize = Math.max(10, Math.ceil(adjustedRange / 10));
+    }
+    
+    return {
+      min: adjustedMin,
+      max: adjustedMax,
+      stepSize: stepSize
+    };
   }, [filteredData, selectedInferenceProviders, selectedModelProviders]);
 
   // Chart options
@@ -295,8 +400,30 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
         titleColor: darkMode ? '#e5e7eb' : '#374151',
         bodyColor: darkMode ? '#d1d5db' : '#6b7280',
         borderColor: darkMode ? '#374151' : '#d1d5db',
-        borderWidth: 1
-      }
+        borderWidth: 1,
+        titleFont: { size: 12, weight: 'bold' },
+        bodyFont: { size: 11 },
+        cornerRadius: 6,
+        displayColors: true,
+        callbacks: {
+          title: (context: any) => {
+            const date = new Date(context[0].parsed.x);
+            return date.toLocaleDateString('en-US', {
+              timeZone: 'UTC',
+              year: 'numeric',
+              month: 'short', 
+              day: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit'
+            }) + ' UTC';
+          },
+          label: (context: any) => {
+            return `${context.dataset.label}: ${context.parsed.y} models`;
+          }
+        }
+      },
+      // Note: Data labels would require chartjs-plugin-datalabels
+      // For now, values are shown in tooltips on hover
     },
     scales: {
       x: {
@@ -317,13 +444,15 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
         }
       },
       y: {
-        beginAtZero: true,
+        min: yAxisConfig.min,
+        max: yAxisConfig.max,
         grid: {
           color: darkMode ? '#374151' : '#e5e7eb'
         },
         ticks: {
           color: darkMode ? '#9ca3af' : '#6b7280',
-          precision: 0
+          precision: 0,
+          stepSize: yAxisConfig.stepSize
         }
       }
     },
@@ -521,8 +650,15 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
           </div>
 
           {/* Chart */}
-          <div className="h-96">
+          <div className="h-96 relative">
             <Line data={chartData} options={chartOptions} />
+            {selectedInferenceProviders.size === 0 && selectedModelProviders.size === 0 && (
+              <div className={`absolute top-4 right-4 px-3 py-2 rounded-md text-xs ${
+                darkMode ? 'bg-blue-900/30 text-blue-200 border border-blue-600/30' : 'bg-blue-50 text-blue-700 border border-blue-200'
+              }`}>
+                💡 Select providers below to compare their model counts
+              </div>
+            )}
           </div>
 
           {/* Stats */}

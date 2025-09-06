@@ -94,34 +94,69 @@ const Analytics = () => {
     <div className={`min-h-screen py-4 ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex flex-col">
         {/* Header */}
-        <div className="text-center mb-6 relative">
-          {/* Back Button */}
-          <Link 
-            to="/"
-            className={`absolute left-0 top-0 inline-flex items-center px-3 py-2 rounded-md transition-colors ${
-              darkMode ? 'bg-gray-800 text-gray-300 hover:bg-gray-700' : 'bg-white text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Dashboard
-          </Link>
+        <div className="text-center mb-6">
+          {/* Mobile: Stack vertically */}
+          <div className="block md:hidden space-y-4">
+            <h1 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+              AI Models Analytics
+            </h1>
+            <p className={`text-base ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              Historical trends and insights
+            </p>
+            <div className="flex justify-center space-x-4">
+              {/* Back Button */}
+              <Link 
+                to="/"
+                className={`inline-flex items-center px-3 py-2 rounded-md transition-colors ${
+                  darkMode ? 'bg-gray-800 text-gray-300 hover:bg-gray-700' : 'bg-white text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Dashboard
+              </Link>
 
-          {/* Dark Mode Toggle */}
-          <button
-            onClick={() => setDarkMode(!darkMode)}
-            className={`absolute right-0 top-0 p-2 rounded-lg ${
-              darkMode ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' : 'bg-white text-gray-600 hover:bg-gray-100'
-            } transition-colors`}
-          >
-            {darkMode ? <Sun size={20} /> : <Moon size={20} />}
-          </button>
-          
-          <h1 className={`text-3xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-            AI Models Analytics
-          </h1>
-          <p className={`mt-2 text-lg ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            Historical trends and insights
-          </p>
+              {/* Dark Mode Toggle */}
+              <button
+                onClick={() => setDarkMode(!darkMode)}
+                className={`p-2 rounded-lg ${
+                  darkMode ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' : 'bg-white text-gray-600 hover:bg-gray-100'
+                } transition-colors`}
+              >
+                {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+              </button>
+            </div>
+          </div>
+
+          {/* Desktop: Original layout */}
+          <div className="hidden md:block relative">
+            {/* Back Button */}
+            <Link 
+              to="/"
+              className={`absolute left-0 top-0 inline-flex items-center px-3 py-2 rounded-md transition-colors ${
+                darkMode ? 'bg-gray-800 text-gray-300 hover:bg-gray-700' : 'bg-white text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Dashboard
+            </Link>
+
+            {/* Dark Mode Toggle */}
+            <button
+              onClick={() => setDarkMode(!darkMode)}
+              className={`absolute right-0 top-0 p-2 rounded-lg ${
+                darkMode ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' : 'bg-white text-gray-600 hover:bg-gray-100'
+              } transition-colors`}
+            >
+              {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+            
+            <h1 className={`text-3xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+              AI Models Analytics
+            </h1>
+            <p className={`mt-2 text-lg ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              Historical trends and insights
+            </p>
+          </div>
         </div>
 
         <div className="flex-1">
@@ -142,7 +177,10 @@ const Analytics = () => {
                   day: '2-digit', 
                   hour: '2-digit', 
                   minute: '2-digit'
-                })} UTC | <strong>Total Models: {models.length}</strong>
+                })} UTC | <strong>Total Models: {models.length}<sup>*</sup></strong>
+              </p>
+              <p className={`text-sm ${darkMode ? 'text-blue-300' : 'text-blue-700'} mt-1`}>
+                *Does not include experimental, preview, test, beta models. Also excludes models with unknown origins and license info
               </p>
             </div>
           </div>

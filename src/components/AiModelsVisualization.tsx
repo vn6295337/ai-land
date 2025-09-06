@@ -20,6 +20,7 @@ const AiModelsVisualization = () => {
     apiAccess: new Set<string>()
   });
   const [openFilter, setOpenFilter] = useState<string | null>(null);
+  const [sortConfig, setSortConfig] = useState<{key: string; direction: 'asc' | 'desc'} | null>(null);
   
   // Search state for filtering dropdown options
   const [dropdownSearchTerms, setDropdownSearchTerms] = useState({
@@ -133,6 +134,41 @@ const AiModelsVisualization = () => {
     return Array.from(values).sort();
   };
 
+  // Sort function
+  const handleSort = (key: string) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  // Get sortable value from model
+  const getSortableValue = (model: any, key: string) => {
+    switch(key) {
+      case 'inferenceProvider':
+        return model.inference_provider || 'Unknown';
+      case 'modelProvider':
+        return model.model_provider || 'Unknown';
+      case 'modelName':
+        return model.human_readable_name || 'Unknown';
+      case 'modelProviderCountry':
+        return model.model_provider_country || 'Unknown';
+      case 'inputModalities':
+        return model.input_modalities || 'Unknown';
+      case 'outputModalities':
+        return model.output_modalities || 'Unknown';
+      case 'license':
+        return model.license_name || 'N/A';
+      case 'rateLimits':
+        return model.rate_limits || 'N/A';
+      case 'apiAccess':
+        return model.provider_api_access || 'N/A';
+      default:
+        return '';
+    }
+  };
+
   // Filter models based on current filters
   const filteredModels = models.filter(model => {
     const inferenceProvider = model.inference_provider || 'Unknown';
@@ -162,6 +198,19 @@ const AiModelsVisualization = () => {
       (columnFilters.rateLimits.size === 0 || columnFilters.rateLimits.has(rateLimits)) &&
       (columnFilters.apiAccess.size === 0 || columnFilters.apiAccess.has(apiAccess))
     );
+  }).sort((a, b) => {
+    if (!sortConfig) return 0;
+    
+    const aValue = getSortableValue(a, sortConfig.key);
+    const bValue = getSortableValue(b, sortConfig.key);
+    
+    if (aValue < bValue) {
+      return sortConfig.direction === 'asc' ? -1 : 1;
+    }
+    if (aValue > bValue) {
+      return sortConfig.direction === 'asc' ? 1 : -1;
+    }
+    return 0;
   });
 
   // Toggle filter value
@@ -296,32 +345,65 @@ const AiModelsVisualization = () => {
     <div className={`min-h-screen py-4 ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex flex-col">
         {/* Header */}
-        <div className="text-center mb-4 relative">
-          {/* Analytics Link */}
-          <Link
-            to="/analytics"
-            className={`absolute left-0 top-0 inline-flex items-center px-3 py-2 rounded-lg transition-colors ${
-              darkMode ? 'bg-gray-800 text-blue-400 hover:bg-gray-700' : 'bg-white text-blue-600 hover:bg-gray-100'
-            }`}
-            title="View Analytics Dashboard"
-          >
-            <BarChart3 size={20} className="mr-2" />
-            Analytics
-          </Link>
+        <div className="text-center mb-4">
+          {/* Mobile: Stack vertically */}
+          <div className="block md:hidden space-y-4">
+            <h1 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+              Free AI Models Tracker <span className="text-base font-normal">beta</span>
+            </h1>
+            <div className="flex justify-center space-x-4">
+              {/* Analytics Link */}
+              <Link
+                to="/analytics"
+                className={`inline-flex items-center px-3 py-2 rounded-lg transition-colors ${
+                  darkMode ? 'bg-gray-800 text-blue-400 hover:bg-gray-700' : 'bg-white text-blue-600 hover:bg-gray-100'
+                }`}
+                title="View Analytics Dashboard"
+              >
+                <BarChart3 size={18} className="mr-2" />
+                Analytics
+              </Link>
 
-          {/* Dark Mode Toggle */}
-          <button
-            onClick={() => setDarkMode(!darkMode)}
-            className={`absolute right-0 top-0 p-2 rounded-lg ${
-              darkMode ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' : 'bg-white text-gray-600 hover:bg-gray-100'
-            } transition-colors`}
-          >
-            {darkMode ? <Sun size={20} /> : <Moon size={20} />}
-          </button>
-          
-          <h1 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-            Free AI Models Tracker <span className="text-lg font-normal">beta</span>
-          </h1>
+              {/* Dark Mode Toggle */}
+              <button
+                onClick={() => setDarkMode(!darkMode)}
+                className={`p-2 rounded-lg ${
+                  darkMode ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' : 'bg-white text-gray-600 hover:bg-gray-100'
+                } transition-colors`}
+              >
+                {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+              </button>
+            </div>
+          </div>
+
+          {/* Desktop: Original layout */}
+          <div className="hidden md:block relative">
+            {/* Analytics Link */}
+            <Link
+              to="/analytics"
+              className={`absolute left-0 top-0 inline-flex items-center px-3 py-2 rounded-lg transition-colors ${
+                darkMode ? 'bg-gray-800 text-blue-400 hover:bg-gray-700' : 'bg-white text-blue-600 hover:bg-gray-100'
+              }`}
+              title="View Analytics Dashboard"
+            >
+              <BarChart3 size={20} className="mr-2" />
+              Analytics
+            </Link>
+
+            {/* Dark Mode Toggle */}
+            <button
+              onClick={() => setDarkMode(!darkMode)}
+              className={`absolute right-0 top-0 p-2 rounded-lg ${
+                darkMode ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' : 'bg-white text-gray-600 hover:bg-gray-100'
+              } transition-colors`}
+            >
+              {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+            
+            <h1 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+              Free AI Models Tracker <span className="text-lg font-normal">beta</span>
+            </h1>
+          </div>
         </div>
 
         <div className="flex-1 space-y-4">
@@ -335,7 +417,10 @@ const AiModelsVisualization = () => {
                 day: '2-digit', 
                 hour: '2-digit', 
                 minute: '2-digit'
-              })} UTC | <strong>Total Models: {filteredModels.length}</strong>
+              })} UTC | <strong>Total Models: {filteredModels.length}<sup>*</sup></strong>
+            </p>
+            <p className={`text-sm ${darkMode ? 'text-gray-500' : 'text-gray-400'} mt-1`}>
+              *Does not include experimental, preview, test, beta models. Also excludes models with unknown origins and license info
             </p>
           </div>
 
@@ -377,7 +462,7 @@ const AiModelsVisualization = () => {
                       { key: 'modelProvider', label: 'Model Provider', className: 'min-w-[100px] max-w-[120px]' },
                       { key: 'modelName', label: 'Model Name', className: 'min-w-[200px] max-w-[300px]' },
                       { key: 'modelProviderCountry', label: 'Country of Origin', className: 'min-w-[120px] max-w-[150px]' },
-                      { key: 'inputModalities', label: 'Input Type', className: 'min-w-[100px] max-w-[130px]' },
+                      { key: 'inputModalities', label: 'Input Type', className: 'min-w-[150px] max-w-[200px]' },
                       { key: 'outputModalities', label: 'Output Type', className: 'min-w-[100px] max-w-[130px]' },
                       { key: 'license', label: 'License', className: 'min-w-[80px] max-w-[100px]' },
                       { key: 'rateLimits', label: 'Rate Limits', className: 'min-w-[180px] max-w-[250px]' },
@@ -385,7 +470,17 @@ const AiModelsVisualization = () => {
                     ].map((column) => (
                       <th key={column.key} className={`text-left py-3 px-4 font-semibold ${darkMode ? 'text-white' : 'text-gray-900'} relative ${column.className || ''}`}>
                         <div className="flex items-center justify-between">
-                          <span>{column.label}</span>
+                          <button
+                            onClick={() => handleSort(column.key)}
+                            className="flex items-center hover:opacity-75 transition-opacity"
+                          >
+                            <span>{column.label}</span>
+                            {sortConfig?.key === column.key && (
+                              <span className="ml-1">
+                                {sortConfig.direction === 'asc' ? '↑' : '↓'}
+                              </span>
+                            )}
+                          </button>
                           <div className="relative">
                             <button
                               onClick={() => setOpenFilter(openFilter === column.key ? null : column.key)}
@@ -488,7 +583,7 @@ const AiModelsVisualization = () => {
                         </td>
                         <td className={`py-3 px-4 text-sm font-medium ${darkMode ? 'text-white' : 'text-gray-900'} min-w-[200px] max-w-[300px]`}>{model.human_readable_name || 'Unknown'}</td>
                         <td className={`py-3 px-4 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'} min-w-[120px] max-w-[150px] truncate`}>{model.model_provider_country || 'Unknown'}</td>
-                        <td className={`py-3 px-4 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'} min-w-[100px] max-w-[130px] truncate`}>{model.input_modalities || 'Unknown'}</td>
+                        <td className={`py-3 px-4 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'} min-w-[150px] max-w-[200px]`}>{model.input_modalities || 'Unknown'}</td>
                         <td className={`py-3 px-4 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'} min-w-[100px] max-w-[130px] truncate`}>{model.output_modalities || 'Unknown'}</td>
                         <td className="py-3 px-4 text-sm min-w-[80px] max-w-[100px]">
                           <div className="text-center">
@@ -575,17 +670,6 @@ const AiModelsVisualization = () => {
           </div>
         </div>
 
-        {/* Version Notice */}
-        <div className={`mt-6 p-4 rounded-lg border ${
-          darkMode 
-            ? 'bg-blue-900/20 border-blue-600' 
-            : 'bg-blue-50 border-blue-200'
-        }`}>
-          <p className={`text-sm ${darkMode ? 'text-blue-200' : 'text-blue-800'}`}>
-            <strong>beta:</strong> Total model count reduced to 89 from 90. Reason: Sarvam-M no more available in OpenRouter.
-            <br/>
-          </p>
-        </div>
 
         {/* Legal Disclaimer */}
         <div className={`mt-8 pt-6 border-t rounded-lg p-4 ${
