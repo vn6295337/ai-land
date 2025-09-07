@@ -107,7 +107,7 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
     }
   };
 
-  // Track analytics snapshots only when data actually changes
+  // Track analytics snapshots - save once per day (last update of the day)
   useEffect(() => {
     const collectAnalyticsData = async () => {
       if (currentModels.length === 0) return;
@@ -124,83 +124,38 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
         modelProviders[modelProvider] = (modelProviders[modelProvider] || 0) + 1;
       });
 
-      // Enhanced change detection with day boundary logic
-      const lastDataPoint = historicalData[historicalData.length - 1];
-      let shouldSave = false;
+      // Always save - will overwrite existing data for the current day
+      console.log('Saving daily analytics snapshot:', {
+        totalModels: currentModels.length,
+        inferenceProviderCount: Object.keys(inferenceProviders).length,
+        modelProviderCount: Object.keys(modelProviders).length
+      });
+      
+      const success = await saveAnalyticsSnapshot(
+        currentModels.length,
+        inferenceProviders,
+        modelProviders
+      );
 
-      if (historicalData.length === 0) {
-        // First data point
-        shouldSave = true;
-      } else if (lastDataPoint) {
-        // Check day boundary
-        const today = new Date().toDateString();
-        const lastDataDate = lastDataPoint.timestamp.toDateString();
-        const isNewDay = lastDataDate !== today;
-        
-        // Check if model count changed
-        const countChanged = lastDataPoint.totalCount !== currentModels.length;
-        
-        // Check if provider distribution changed significantly
-        const lastInferenceProviders = lastDataPoint.providerCounts.inferenceProviders;
-        const lastModelProviders = lastDataPoint.providerCounts.modelProviders;
-        
-        const inferenceProvidersChanged = JSON.stringify(lastInferenceProviders) !== JSON.stringify(inferenceProviders);
-        const modelProvidersChanged = JSON.stringify(lastModelProviders) !== JSON.stringify(modelProviders);
-        
-        // Check time since last update (fallback - only save once per hour unless data changed)
-        const lastUpdateTime = lastDataPoint.timestamp;
-        const timeSinceLastUpdate = Date.now() - lastUpdateTime.getTime();
-        const oneHour = 60 * 60 * 1000;
-        
-        // New logic: Always save on new day, or when data changes, or hourly fallback
-        shouldSave = isNewDay || countChanged || inferenceProvidersChanged || modelProvidersChanged || 
-                    (timeSinceLastUpdate > oneHour);
-        
-        console.log('Analytics decision:', {
-          isNewDay,
-          countChanged,
-          inferenceProvidersChanged, 
-          modelProvidersChanged,
-          timeSinceLastUpdate: Math.round(timeSinceLastUpdate / 1000 / 60),
-          shouldSave
-        });
-      }
+      if (success) {
+        // Reload historical data to get the latest entry
+        const { data, error } = await supabase
+          .from('analytics_history')
+          .select('*')
+          .order('timestamp', { ascending: true });
 
-      if (shouldSave) {
-        console.log('Saving analytics snapshot:', {
-          totalModels: currentModels.length,
-          inferenceProviderCount: Object.keys(inferenceProviders).length,
-          modelProviderCount: Object.keys(modelProviders).length
-        });
-        
-        const success = await saveAnalyticsSnapshot(
-          currentModels.length,
-          inferenceProviders,
-          modelProviders
-        );
-
-        if (success) {
-          // Reload historical data to get the latest entry
-          const { data, error } = await supabase
-            .from('analytics_history')
-            .select('*')
-            .order('timestamp', { ascending: true });
-
-          if (!error && data) {
-            const formattedData: HistoricalDataPoint[] = data.map((item: any) => ({
-              id: item.id,
-              timestamp: new Date(item.timestamp),
-              totalCount: item.total_models,
-              providerCounts: {
-                inferenceProviders: item.inference_provider_counts,
-                modelProviders: item.model_provider_counts
-              }
-            }));
-            setHistoricalData(formattedData);
-          }
+        if (!error && data) {
+          const formattedData: HistoricalDataPoint[] = data.map((item: any) => ({
+            id: item.id,
+            timestamp: new Date(item.timestamp),
+            totalCount: item.total_models,
+            providerCounts: {
+              inferenceProviders: item.inference_provider_counts,
+              modelProviders: item.model_provider_counts
+            }
+          }));
+          setHistoricalData(formattedData);
         }
-      } else {
-        console.log('Skipping analytics snapshot - no material changes detected');
       }
     };
 
@@ -227,7 +182,7 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
     };
   }, [historicalData]);
 
-  // Filter data based on time range
+  // Filter data based on time range and get only last entry per day
   const filteredData = useMemo(() => {
     if (historicalData.length === 0) return [];
 
@@ -242,18 +197,28 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
       }
     })();
 
-    const filtered = historicalData.filter(point => point.timestamp >= cutoffTime);
+    // Filter by time range first
+    const timeFiltered = historicalData.filter(point => point.timestamp >= cutoffTime);
     
-    // Debug logging
-    if (historicalData.length > 0) {
-      const oldest = new Date(Math.min(...historicalData.map(d => d.timestamp.getTime())));
-      const newest = new Date(Math.max(...historicalData.map(d => d.timestamp.getTime())));
-      console.log(`Time range: ${timeRange}, Total points: ${historicalData.length}, Filtered: ${filtered.length}`);
-      console.log(`Data spans: ${oldest.toISOString()} to ${newest.toISOString()}`);
-      console.log(`Cutoff time: ${cutoffTime.toISOString()}`);
-    }
-
-    return filtered;
+    // Group by date (YYYY-MM-DD) and get the latest entry per day
+    const dailyData = new Map<string, HistoricalDataPoint>();
+    
+    timeFiltered.forEach(point => {
+      const dateKey = point.timestamp.toISOString().split('T')[0]; // YYYY-MM-DD
+      const existing = dailyData.get(dateKey);
+      
+      // Keep the latest timestamp for each day
+      if (!existing || point.timestamp > existing.timestamp) {
+        dailyData.set(dateKey, point);
+      }
+    });
+    
+    // Convert back to array and sort by date
+    const result = Array.from(dailyData.values()).sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+    
+    console.log(`Time range: ${timeRange}, Total points: ${historicalData.length}, Daily points: ${result.length}`);
+    
+    return result;
   }, [historicalData, timeRange]);
 
   // Prepare chart data
@@ -415,14 +380,12 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
         callbacks: {
           title: (context: any) => {
             const date = new Date(context[0].parsed.x);
-            return date.toLocaleDateString('en-US', {
+            return date.toLocaleDateString('en-GB', {
               timeZone: 'UTC',
               year: 'numeric',
               month: 'short', 
-              day: '2-digit',
-              hour: '2-digit',
-              minute: '2-digit'
-            }) + ' UTC';
+              day: '2-digit'
+            }).replace(/ /g, '-');
           },
           label: (context: any) => {
             return `${context.dataset.label}: ${context.parsed.y} models`;
@@ -436,18 +399,24 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
       x: {
         type: 'time' as const,
         time: {
+          unit: 'day',
           displayFormats: {
-            hour: 'yyyyMMdd-hhmm a',
-            day: 'yyyyMMdd-hhmm a',
-            week: 'yyyyMMdd-hhmm a',
-            month: 'yyyyMMdd-hhmm a'
+            day: 'DD-MMM-YYYY'
           }
         },
         grid: {
           color: darkMode ? '#374151' : '#e5e7eb'
         },
         ticks: {
-          color: darkMode ? '#9ca3af' : '#6b7280'
+          color: darkMode ? '#9ca3af' : '#6b7280',
+          callback: function(value: any) {
+            const date = new Date(value);
+            return date.toLocaleDateString('en-GB', {
+              day: '2-digit',
+              month: 'short',
+              year: 'numeric'
+            }).replace(/ /g, '-');
+          }
         }
       },
       y: {
