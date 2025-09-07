@@ -235,10 +235,15 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
     if (showTotalLine) {
       datasets.push({
         label: 'Total Models',
-        data: filteredData.map(point => ({
-          x: point.timestamp,
-          y: point.totalCount
-        })),
+        data: filteredData.map(point => {
+          // Normalize to midnight for proper x-axis alignment
+          const normalizedDate = new Date(point.timestamp);
+          normalizedDate.setUTCHours(0, 0, 0, 0);
+          return {
+            x: normalizedDate,
+            y: point.totalCount
+          };
+        }),
         borderColor: colors[0],
         backgroundColor: colors[0] + '20',
         tension: 0.1,
@@ -256,11 +261,16 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
     // Add selected inference provider lines
     selectedInferenceProviders.forEach(provider => {
       datasets.push({
-        label: `${provider} (Inference)`,
-        data: filteredData.map(point => ({
-          x: point.timestamp,
-          y: point.providerCounts.inferenceProviders[provider] || 0
-        })),
+        label: `${provider} (Inference Provider)`,
+        data: filteredData.map(point => {
+          // Normalize to midnight for proper x-axis alignment
+          const normalizedDate = new Date(point.timestamp);
+          normalizedDate.setUTCHours(0, 0, 0, 0);
+          return {
+            x: normalizedDate,
+            y: point.providerCounts.inferenceProviders[provider] || 0
+          };
+        }),
         borderColor: colors[colorIndex % colors.length],
         backgroundColor: colors[colorIndex % colors.length] + '20',
         tension: 0.1,
@@ -278,11 +288,16 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
     // Add selected model provider lines
     selectedModelProviders.forEach(provider => {
       datasets.push({
-        label: `${provider} (Model)`,
-        data: filteredData.map(point => ({
-          x: point.timestamp,
-          y: point.providerCounts.modelProviders[provider] || 0
-        })),
+        label: `${provider} (Model Provider)`,
+        data: filteredData.map(point => {
+          // Normalize to midnight for proper x-axis alignment
+          const normalizedDate = new Date(point.timestamp);
+          normalizedDate.setUTCHours(0, 0, 0, 0);
+          return {
+            x: normalizedDate,
+            y: point.providerCounts.modelProviders[provider] || 0
+          };
+        }),
         borderColor: colors[colorIndex % colors.length],
         backgroundColor: colors[colorIndex % colors.length] + '20',
         tension: 0.1,
@@ -579,6 +594,26 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
               </div>
             </div>
 
+            {/* Clear All Providers Button */}
+            {(selectedInferenceProviders.size > 0 || selectedModelProviders.size > 0) && (
+              <div className="flex items-center space-x-4">
+                <button
+                  onClick={() => {
+                    setSelectedInferenceProviders(new Set());
+                    setSelectedModelProviders(new Set());
+                  }}
+                  className={`px-4 py-2 text-sm rounded-md font-medium transition-colors ${
+                    darkMode ? 'bg-red-600 hover:bg-red-500 text-white' : 'bg-red-600 hover:bg-red-700 text-white'
+                  }`}
+                >
+                  Clear All Providers
+                </button>
+                <span className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  {selectedInferenceProviders.size + selectedModelProviders.size} provider(s) selected
+                </span>
+              </div>
+            )}
+
             {/* Provider Filters */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Inference Providers */}
@@ -634,7 +669,7 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
               <div className={`absolute top-4 right-4 px-3 py-2 rounded-md text-xs ${
                 darkMode ? 'bg-blue-900/30 text-blue-200 border border-blue-600/30' : 'bg-blue-50 text-blue-700 border border-blue-200'
               }`}>
-                💡 Select providers below to compare their model counts
+                💡 Select providers above to compare their model counts
               </div>
             )}
           </div>
@@ -668,12 +703,12 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
             <div className={`p-3 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
               <div className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
                 {filteredData.length > 1 
-                  ? ((filteredData[filteredData.length - 1].totalCount - filteredData[0].totalCount) >= 0 ? '+' : '') +
-                    (filteredData[filteredData.length - 1].totalCount - filteredData[0].totalCount)
+                  ? ((filteredData[filteredData.length - 1].totalCount - filteredData[filteredData.length - 2].totalCount) >= 0 ? '+' : '') +
+                    (filteredData[filteredData.length - 1].totalCount - filteredData[filteredData.length - 2].totalCount)
                   : '0'}
               </div>
               <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                Net Change
+                Daily Change
               </div>
             </div>
           </div>
