@@ -415,15 +415,18 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
         type: 'time' as const,
         time: {
           unit: 'day',
+          round: 'day',
           displayFormats: {
             day: 'DD-MMM-YYYY'
-          }
+          },
+          tooltipFormat: 'DD-MMM-YYYY'
         },
         grid: {
           color: darkMode ? '#374151' : '#e5e7eb'
         },
         ticks: {
           color: darkMode ? '#9ca3af' : '#6b7280',
+          source: 'data',
           callback: function(value: any) {
             const date = new Date(value);
             return date.toLocaleDateString('en-GB', {
@@ -678,10 +681,33 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
           <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
             <div className={`p-3 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
               <div className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                {currentModels.length}
+                {(() => {
+                  const showTotalLine = selectedInferenceProviders.size === 0 && selectedModelProviders.size === 0;
+                  if (showTotalLine) return currentModels.length;
+                  
+                  // Sum current counts for selected providers
+                  let total = 0;
+                  selectedInferenceProviders.forEach(provider => {
+                    const counts = {};
+                    currentModels.forEach(model => {
+                      const inferenceProvider = model.inference_provider || 'Unknown';
+                      counts[inferenceProvider] = (counts[inferenceProvider] || 0) + 1;
+                    });
+                    total += counts[provider] || 0;
+                  });
+                  selectedModelProviders.forEach(provider => {
+                    const counts = {};
+                    currentModels.forEach(model => {
+                      const modelProvider = model.model_provider || 'Unknown';
+                      counts[modelProvider] = (counts[modelProvider] || 0) + 1;
+                    });
+                    total += counts[provider] || 0;
+                  });
+                  return total;
+                })()}
               </div>
               <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                Current Total
+                Current Count
               </div>
             </div>
             <div className={`p-3 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
@@ -694,7 +720,27 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
             </div>
             <div className={`p-3 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
               <div className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                {filteredData.length > 0 ? Math.max(...filteredData.map(d => d.totalCount)) : 0}
+                {(() => {
+                  const showTotalLine = selectedInferenceProviders.size === 0 && selectedModelProviders.size === 0;
+                  if (showTotalLine) {
+                    return filteredData.length > 0 ? Math.max(...filteredData.map(d => d.totalCount)) : 0;
+                  }
+                  
+                  // Calculate peak for selected providers
+                  const allValues = filteredData.flatMap(point => [
+                    ...selectedInferenceProviders.size > 0 
+                      ? Array.from(selectedInferenceProviders).map(provider => 
+                          point.providerCounts.inferenceProviders[provider] || 0
+                        ) 
+                      : [],
+                    ...selectedModelProviders.size > 0 
+                      ? Array.from(selectedModelProviders).map(provider => 
+                          point.providerCounts.modelProviders[provider] || 0
+                        ) 
+                      : []
+                  ]);
+                  return allValues.length > 0 ? Math.max(...allValues) : 0;
+                })()}
               </div>
               <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                 Peak Count
@@ -702,10 +748,34 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
             </div>
             <div className={`p-3 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
               <div className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                {filteredData.length > 1 
-                  ? ((filteredData[filteredData.length - 1].totalCount - filteredData[filteredData.length - 2].totalCount) >= 0 ? '+' : '') +
-                    (filteredData[filteredData.length - 1].totalCount - filteredData[filteredData.length - 2].totalCount)
-                  : '0'}
+                {(() => {
+                  if (filteredData.length < 2) return '0';
+                  
+                  const showTotalLine = selectedInferenceProviders.size === 0 && selectedModelProviders.size === 0;
+                  if (showTotalLine) {
+                    const change = filteredData[filteredData.length - 1].totalCount - filteredData[filteredData.length - 2].totalCount;
+                    return (change >= 0 ? '+' : '') + change;
+                  }
+                  
+                  // Calculate daily change for selected providers
+                  const latest = filteredData[filteredData.length - 1];
+                  const previous = filteredData[filteredData.length - 2];
+                  
+                  let latestTotal = 0;
+                  let previousTotal = 0;
+                  
+                  selectedInferenceProviders.forEach(provider => {
+                    latestTotal += latest.providerCounts.inferenceProviders[provider] || 0;
+                    previousTotal += previous.providerCounts.inferenceProviders[provider] || 0;
+                  });
+                  selectedModelProviders.forEach(provider => {
+                    latestTotal += latest.providerCounts.modelProviders[provider] || 0;
+                    previousTotal += previous.providerCounts.modelProviders[provider] || 0;
+                  });
+                  
+                  const change = latestTotal - previousTotal;
+                  return (change >= 0 ? '+' : '') + change;
+                })()}
               </div>
               <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                 Daily Change
