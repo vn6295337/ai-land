@@ -124,7 +124,7 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
         modelProviders[modelProvider] = (modelProviders[modelProvider] || 0) + 1;
       });
 
-      // More sophisticated change detection
+      // Enhanced change detection with day boundary logic
       const lastDataPoint = historicalData[historicalData.length - 1];
       let shouldSave = false;
 
@@ -132,6 +132,11 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
         // First data point
         shouldSave = true;
       } else if (lastDataPoint) {
+        // Check day boundary
+        const today = new Date().toDateString();
+        const lastDataDate = lastDataPoint.timestamp.toDateString();
+        const isNewDay = lastDataDate !== today;
+        
         // Check if model count changed
         const countChanged = lastDataPoint.totalCount !== currentModels.length;
         
@@ -142,15 +147,17 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
         const inferenceProvidersChanged = JSON.stringify(lastInferenceProviders) !== JSON.stringify(inferenceProviders);
         const modelProvidersChanged = JSON.stringify(lastModelProviders) !== JSON.stringify(modelProviders);
         
-        // Check time since last update (only save once per hour unless data changed)
+        // Check time since last update (fallback - only save once per hour unless data changed)
         const lastUpdateTime = lastDataPoint.timestamp;
         const timeSinceLastUpdate = Date.now() - lastUpdateTime.getTime();
         const oneHour = 60 * 60 * 1000;
         
-        shouldSave = countChanged || inferenceProvidersChanged || modelProvidersChanged || 
+        // New logic: Always save on new day, or when data changes, or hourly fallback
+        shouldSave = isNewDay || countChanged || inferenceProvidersChanged || modelProvidersChanged || 
                     (timeSinceLastUpdate > oneHour);
         
         console.log('Analytics decision:', {
+          isNewDay,
           countChanged,
           inferenceProvidersChanged, 
           modelProvidersChanged,
@@ -483,6 +490,8 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
       setSelectedModelProviders(newSet);
     }
   };
+
+
 
   // Clear historical data
   const clearData = async () => {
