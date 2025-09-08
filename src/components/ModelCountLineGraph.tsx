@@ -13,7 +13,7 @@ import {
   TimeScale,
 } from 'chart.js';
 import 'chartjs-adapter-date-fns';
-import { ChevronDown, ChevronUp, Download, Trash2, Calendar } from 'lucide-react';
+import { ChevronDown, ChevronUp, Download, Calendar } from 'lucide-react';
 
 ChartJS.register(
   CategoryScale,
@@ -553,15 +553,6 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
             title="Export Data"
           >
             <Download className="w-4 h-4" />
-          </button>
-          <button
-            onClick={clearData}
-            className={`p-2 rounded-md transition-colors ${
-              darkMode ? 'hover:bg-red-700 text-red-400' : 'hover:bg-red-100 text-red-600'
-            }`}
-            title="Clear All Data"
-          >
-            <Trash2 className="w-4 h-4" />
           </button>
         </div>
       </div>
