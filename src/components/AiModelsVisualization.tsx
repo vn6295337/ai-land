@@ -681,29 +681,22 @@ const AiModelsVisualization = () => {
             <h4 className={`font-semibold mb-3 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Important Legal Disclaimer</h4>
             <div className="space-y-2">
               <p>
-                <strong>For informational purposes only:</strong> This dashboard provides real-time information about AI models and their
-                availability.
-                Model information is sourced from provider APIs and documentation. All data is provided "as-is" without warranties of any
-                kind.
+                <strong>For informational purposes only:</strong> This dashboard provides information about AI models and their availability. Model data is sourced from provider APIs and public documentation. Information is updated on a best-effort basis and may not reflect the most current status. All data is provided “as-is,” without warranties of any kind, including but not limited to accuracy, completeness, merchantability, fitness for a particular purpose, or non-infringement.
               </p>
               <p>
-                <strong>No liability:</strong> We are not responsible for model accuracy, availability, pricing changes, rate limit
-                modifications,
-                license changes, or any issues arising from using these models. Users must verify all information independently.
+                <strong>No liability:</strong> We are not responsible for model accuracy, availability, pricing, rate limits, licensing terms, or any issues arising from the use of these models. We disclaim all liability for direct, indirect, incidental, consequential, or special damages of any kind. Users must independently verify all information before relying on it.
               </p>
               <p>
-                <strong>Terms compliance:</strong> Users are responsible for complying with each provider's terms of service, usage
-                policies,
-                and applicable laws. Some models may have restrictions on commercial use, data processing, or geographic availability.
+                <strong>Independence:</strong> This platform is independent and not affiliated with, sponsored by, or endorsed by any model provider.
               </p>
               <p>
-                <strong>Rate limits:</strong> Displayed rate limits are for free tier usage and may change without notice.
-                Actual limits may vary based on account status, usage history, and provider policies.
+                <strong>Terms compliance:</strong> Users are solely responsible for complying with each provider’s terms of service, usage policies, and applicable laws. Some models may have restrictions on commercial use, data processing, or geographic availability.
               </p>
               <p>
-                <strong>License verification:</strong> Always verify license terms directly with the model provider before use in
-                production.
-                License information displayed is for reference only and may not reflect the most current terms.
+                <strong>Rate limits:</strong> Displayed rate limits reflect publicly available or free-tier usage and may change without notice. Actual limits vary by provider, account status, and usage history.
+              </p>
+              <p>
+                <strong>License verification:</strong> License details shown are for reference only. Users must verify current license terms directly with the provider before using any model in production.
               </p>
             </div>
             <p className="font-medium mt-4">
