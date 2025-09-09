@@ -420,7 +420,7 @@ const AiModelsVisualization = () => {
               })} UTC | <strong>Total Models: {filteredModels.length}<sup>*</sup></strong>
             </p>
             <p className={`text-sm ${darkMode ? 'text-gray-500' : 'text-gray-400'} mt-1`}>
-              *Excluded: Experimental, preview, test, and beta models; Models with unknown origins and no/unclear license info; Models requiring payment information for access.
+              *Exclusions: Experimental, preview, test, and beta models; Models with unknown origins or no/unclear license info; Models requiring payment info.
             </p>
           </div>
 
