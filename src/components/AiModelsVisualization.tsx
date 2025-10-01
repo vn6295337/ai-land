@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, CSSProperties } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ChevronDown, ChevronRight, ExternalLink, Filter, X, Moon, Sun, BarChart3, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -21,7 +21,13 @@ const AiModelsVisualization = () => {
   });
   const [openFilter, setOpenFilter] = useState<string | null>(null);
   const [sortConfig, setSortConfig] = useState<{key: string; direction: 'asc' | 'desc'} | null>(null);
-  
+  const [bannerText, setBannerText] = useState<string>("🔴 LIVE: Free AI Models Tracker - Loading banner text...");
+  const containerRef = useRef<HTMLDivElement>(null);
+  const unitRef = useRef<HTMLSpanElement>(null);
+  const [spacerWidth, setSpacerWidth] = useState(0);
+  const [unitWidth, setUnitWidth] = useState(0);
+  const [ready, setReady] = useState(false);
+
   // Search state for filtering dropdown options
   const [dropdownSearchTerms, setDropdownSearchTerms] = useState({
     inferenceProvider: '',
@@ -279,6 +285,78 @@ const AiModelsVisualization = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // Load banner text from file
+  useEffect(() => {
+    const loadBannerText = async () => {
+      try {
+        const response = await fetch('/banner-text.txt');
+        if (response.ok) {
+          const text = await response.text();
+          setBannerText(text.trim() || "🔴 LIVE: Free AI Models Tracker - Welcome to the beta dashboard");
+        }
+      } catch (error) {
+        console.log('Using default banner text');
+        setBannerText("🔴 LIVE: Free AI Models Tracker - Welcome to the beta dashboard");
+      }
+    };
+
+    loadBannerText();
+
+    // Poll for banner text changes every 30 seconds
+    const bannerInterval = setInterval(loadBannerText, 30000);
+    return () => clearInterval(bannerInterval);
+  }, []);
+
+  // One-time keyframes
+  useEffect(() => {
+    const id = 'banner-scroll-keyframes';
+    if (document.getElementById(id)) return;
+    const style = document.createElement('style');
+    style.id = id;
+    style.innerHTML = `
+      @keyframes scrollX {
+        from { transform: translate3d(0,0,0); }
+        to   { transform: translate3d(calc(-1 * var(--d, 0px)),0,0); }
+      }
+    `;
+    document.head.appendChild(style);
+  }, []);
+
+  // Measure the true unit width after fonts load
+  useLayoutEffect(() => {
+    const measure = () => {
+      const cw = containerRef.current?.getBoundingClientRect().width ?? window.innerWidth;
+      setSpacerWidth(Math.ceil(cw));
+    };
+    measure();
+
+    const onResize = () => { measure(); };
+    window.addEventListener('resize', onResize);
+
+    let fontDone = false;
+    const measureUnit = () => {
+      if (!unitRef.current) return;
+      const uw = Math.ceil(unitRef.current.getBoundingClientRect().width);
+      setUnitWidth(uw);
+      setReady(uw > 0);
+    };
+
+    // Wait for fonts if available
+    // @ts-ignore
+    const fonts = (document as any).fonts;
+    if (fonts?.ready && typeof fonts.ready.then === 'function') {
+      fonts.ready.then(() => { fontDone = true; measure(); measureUnit(); });
+    }
+
+    // Fallback
+    const rAF = requestAnimationFrame(() => { if (!fontDone) { measureUnit(); } });
+
+    return () => {
+      window.removeEventListener('resize', onResize);
+      cancelAnimationFrame(rAF);
+    };
+  }, [bannerText, spacerWidth]);
+
   // Close filter dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -403,6 +481,30 @@ const AiModelsVisualization = () => {
             <h1 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
               Free AI Models Tracker <span className="text-lg font-normal">beta</span>
             </h1>
+          </div>
+        </div>
+
+        {/* Rolling TV News Banner */}
+        <div className={`relative overflow-hidden py-3 ${
+          darkMode ? 'bg-red-900 border-red-700' : 'bg-red-600 border-red-400'
+        } border-y-2 my-4`}>
+          <div ref={containerRef} className="overflow-hidden">
+            <div
+              className="whitespace-nowrap will-change-transform"
+              style={{
+                '--d': `${unitWidth}px`,
+                animation: ready ? 'scrollX 6.5s linear infinite' : undefined
+              } as CSSProperties}
+            >
+              <span ref={unitRef} className="inline-flex items-center flex-shrink-0">
+                <span className="text-white font-semibold text-lg tracking-wide px-8">{bannerText}</span>
+                <span aria-hidden style={{ display: 'inline-block', width: spacerWidth }} />
+              </span>
+              <span aria-hidden className="inline-flex items-center flex-shrink-0">
+                <span className="text-white font-semibold text-lg tracking-wide px-8">{bannerText}</span>
+                <span aria-hidden style={{ display: 'inline-block', width: spacerWidth }} />
+              </span>
+            </div>
           </div>
         </div>
 

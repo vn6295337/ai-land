@@ -103,3 +103,21 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* Rolling banner animation */
+@keyframes scroll-rtl {
+  from {
+    transform: translateX(0%);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-scroll {
+  animation: scroll-rtl 6.5s linear infinite;
+}
+
+.animate-scroll:hover {
+  animation-play-state: paused;
+}
