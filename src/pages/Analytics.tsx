@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, CSSProperties } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Moon, Sun } from 'lucide-react';
@@ -10,6 +10,14 @@ const Analytics = () => {
   const [models, setModels] = useState<any[]>([]);
   const [darkMode, setDarkMode] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+
+  // Banner-related state and refs
+  const containerRef = useRef<HTMLDivElement>(null);
+  const unitRef = useRef<HTMLSpanElement>(null);
+  const [bannerText, setBannerText] = useState<string>("🔴 LIVE: Free AI Models Tracker - Loading banner text...");
+  const [spacerWidth, setSpacerWidth] = useState(0);
+  const [unitWidth, setUnitWidth] = useState(0);
+  const [ready, setReady] = useState(false);
 
   const fetchModelData = async () => {
     try {
@@ -62,6 +70,78 @@ const Analytics = () => {
     // Cleanup interval on unmount
     return () => clearInterval(interval);
   }, []);
+
+  // Load banner text from file
+  useEffect(() => {
+    const loadBannerText = async () => {
+      try {
+        const response = await fetch('/banner-text.txt');
+        if (response.ok) {
+          const text = await response.text();
+          setBannerText(text.trim() || "🔴 LIVE: Free AI Models Tracker - Welcome to the beta dashboard");
+        }
+      } catch (error) {
+        console.log('Using default banner text');
+        setBannerText("🔴 LIVE: Free AI Models Tracker - Welcome to the beta dashboard");
+      }
+    };
+
+    loadBannerText();
+
+    // Poll for banner text changes every 30 seconds
+    const bannerInterval = setInterval(loadBannerText, 30000);
+    return () => clearInterval(bannerInterval);
+  }, []);
+
+  // One-time keyframes
+  useEffect(() => {
+    const id = 'banner-scroll-keyframes-analytics';
+    if (document.getElementById(id)) return;
+    const style = document.createElement('style');
+    style.id = id;
+    style.innerHTML = `
+      @keyframes scrollXAnalytics {
+        from { transform: translate3d(0,0,0); }
+        to   { transform: translate3d(calc(-1 * var(--d-analytics, 0px)),0,0); }
+      }
+    `;
+    document.head.appendChild(style);
+  }, []);
+
+  // Measure the true unit width after fonts load
+  useLayoutEffect(() => {
+    const measure = () => {
+      const cw = containerRef.current?.getBoundingClientRect().width ?? window.innerWidth;
+      setSpacerWidth(Math.ceil(cw));
+    };
+    measure();
+
+    const onResize = () => { measure(); };
+    window.addEventListener('resize', onResize);
+
+    let fontDone = false;
+    const measureUnit = () => {
+      if (!unitRef.current) return;
+      const uw = Math.ceil(unitRef.current.getBoundingClientRect().width);
+      setUnitWidth(uw);
+      setReady(uw > 0);
+    };
+
+    // Wait for fonts if available
+    // @ts-ignore
+    const fonts = (document as any).fonts;
+    if (fonts?.ready && typeof fonts.ready.then === 'function') {
+      fonts.ready.then(() => { fontDone = true; measure(); measureUnit(); });
+    }
+
+    // Fallback
+    const rAF = requestAnimationFrame(() => { if (!fontDone) { measureUnit(); } });
+
+    return () => {
+      window.removeEventListener('resize', onResize);
+      cancelAnimationFrame(rAF);
+    };
+  }, [bannerText, loading]);
 
   if (loading) {
     return (
@@ -159,6 +239,30 @@ const Analytics = () => {
           </div>
         </div>
 
+        {/* Rolling TV News Banner */}
+        <div className={`relative overflow-hidden py-3 ${
+          darkMode ? 'bg-red-900 border-red-700' : 'bg-red-600 border-red-400'
+        } border-y-2 my-4`}>
+          <div ref={containerRef} className="overflow-hidden">
+            <div
+              className="whitespace-nowrap will-change-transform"
+              style={{
+                '--d-analytics': `${unitWidth}px`,
+                animation: ready ? 'scrollXAnalytics 6.5s linear infinite' : undefined
+              } as CSSProperties}
+            >
+              <span ref={unitRef} className="inline-flex items-center flex-shrink-0">
+                <span className="text-white font-semibold text-lg tracking-wide px-8">{bannerText}</span>
+                <span aria-hidden style={{ display: 'inline-block', width: spacerWidth }} />
+              </span>
+              <span aria-hidden className="inline-flex items-center flex-shrink-0">
+                <span className="text-white font-semibold text-lg tracking-wide px-8">{bannerText}</span>
+                <span aria-hidden style={{ display: 'inline-block', width: spacerWidth }} />
+              </span>
+            </div>
+          </div>
+        </div>
+
         <div className="flex-1">
           {/* Analytics Info */}
           <div className={`mb-6 p-4 rounded-lg ${darkMode ? 'bg-blue-900/20 border-blue-600' : 'bg-blue-50 border-blue-200'} border`}>
@@ -187,92 +291,6 @@ const Analytics = () => {
 
           {/* Model Count Line Graph */}
           <ModelCountLineGraph currentModels={models} darkMode={darkMode} />
-
-          {/* Provider Summary */}
-          <div className={`mt-6 p-6 rounded-lg shadow-lg ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
-            <h2 className={`text-xl font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              Current Provider Distribution
-            </h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Inference Providers */}
-              <div>
-                <h3 className={`text-lg font-medium mb-3 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Inference Providers
-                </h3>
-                <div className="space-y-2">
-                  {(() => {
-                    const counts: { [key: string]: number } = {};
-                    models.forEach(model => {
-                      const provider = model.inference_provider || 'Unknown';
-                      counts[provider] = (counts[provider] || 0) + 1;
-                    });
-                    return Object.entries(counts)
-                      .sort(([,a], [,b]) => b - a)
-                      .map(([provider, count]) => (
-                        <div key={provider} className="flex justify-between items-center">
-                          <span className={`${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                            {provider}
-                          </span>
-                          <span className={`font-mono px-2 py-1 rounded text-sm ${
-                            darkMode ? 'bg-gray-700 text-gray-200' : 'bg-gray-100 text-gray-800'
-                          }`}>
-                            {count}
-                          </span>
-                        </div>
-                      ));
-                  })()}
-                </div>
-              </div>
-
-              {/* Model Providers */}
-              <div>
-                <h3 className={`text-lg font-medium mb-3 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Model Providers
-                </h3>
-                <div className="space-y-2">
-                  {(() => {
-                    const counts: { [key: string]: number } = {};
-                    models.forEach(model => {
-                      const provider = model.model_provider || 'Unknown';
-                      counts[provider] = (counts[provider] || 0) + 1;
-                    });
-                    return Object.entries(counts)
-                      .sort(([,a], [,b]) => b - a)
-                      .slice(0, 10) // Show top 10 model providers
-                      .map(([provider, count]) => (
-                        <div key={provider} className="flex justify-between items-center">
-                          <span className={`${darkMode ? 'text-gray-300' : 'text-gray-700'} truncate mr-2`}>
-                            {provider}
-                          </span>
-                          <span className={`font-mono px-2 py-1 rounded text-sm ${
-                            darkMode ? 'bg-gray-700 text-gray-200' : 'bg-gray-100 text-gray-800'
-                          }`}>
-                            {count}
-                          </span>
-                        </div>
-                      ));
-                  })()}
-                </div>
-                {(() => {
-                  const counts: { [key: string]: number } = {};
-                  models.forEach(model => {
-                    const provider = model.model_provider || 'Unknown';
-                    counts[provider] = (counts[provider] || 0) + 1;
-                  });
-                  const totalProviders = Object.keys(counts).length;
-                  if (totalProviders > 10) {
-                    return (
-                      <div className={`mt-2 text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                        ... and {totalProviders - 10} more providers
-                      </div>
-                    );
-                  }
-                  return null;
-                })()}
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Footer */}

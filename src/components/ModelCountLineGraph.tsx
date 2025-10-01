@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useLayoutEffect, useRef, CSSProperties } from 'react';
 import { Line } from 'react-chartjs-2';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -47,6 +47,14 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
   const [selectedInferenceProviders, setSelectedInferenceProviders] = useState<Set<string>>(new Set());
   const [selectedModelProviders, setSelectedModelProviders] = useState<Set<string>>(new Set());
   const [timeRange, setTimeRange] = useState<'24h' | '7d' | '30d' | 'all'>('7d');
+
+  // Banner-related state and refs
+  const containerRef = useRef<HTMLDivElement>(null);
+  const unitRef = useRef<HTMLSpanElement>(null);
+  const [bannerText, setBannerText] = useState<string>("🔴 LIVE: Free AI Models Tracker - Loading banner text...");
+  const [spacerWidth, setSpacerWidth] = useState(0);
+  const [unitWidth, setUnitWidth] = useState(0);
+  const [ready, setReady] = useState(false);
 
   // No longer using localStorage - data persisted in database
 
@@ -162,25 +170,77 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
     collectAnalyticsData();
   }, [currentModels]);
 
-  // Get unique providers from historical data
-  const availableProviders = useMemo(() => {
-    const inferenceProviders = new Set<string>();
-    const modelProviders = new Set<string>();
-
-    historicalData.forEach(point => {
-      Object.keys(point.providerCounts.inferenceProviders).forEach(provider => {
-        inferenceProviders.add(provider);
-      });
-      Object.keys(point.providerCounts.modelProviders).forEach(provider => {
-        modelProviders.add(provider);
-      });
-    });
-
-    return {
-      inferenceProviders: Array.from(inferenceProviders).sort(),
-      modelProviders: Array.from(modelProviders).sort()
+  // Load banner text from file
+  useEffect(() => {
+    const loadBannerText = async () => {
+      try {
+        const response = await fetch('/banner-text.txt');
+        if (response.ok) {
+          const text = await response.text();
+          setBannerText(text.trim() || "🔴 LIVE: Free AI Models Tracker - Welcome to the beta dashboard");
+        }
+      } catch (error) {
+        console.log('Using default banner text');
+        setBannerText("🔴 LIVE: Free AI Models Tracker - Welcome to the beta dashboard");
+      }
     };
-  }, [historicalData]);
+
+    loadBannerText();
+
+    // Poll for banner text changes every 30 seconds
+    const bannerInterval = setInterval(loadBannerText, 30000);
+    return () => clearInterval(bannerInterval);
+  }, []);
+
+  // One-time keyframes
+  useEffect(() => {
+    const id = 'banner-scroll-keyframes';
+    if (document.getElementById(id)) return;
+    const style = document.createElement('style');
+    style.id = id;
+    style.innerHTML = `
+      @keyframes scrollX {
+        from { transform: translate3d(0,0,0); }
+        to   { transform: translate3d(calc(-1 * var(--d, 0px)),0,0); }
+      }
+    `;
+    document.head.appendChild(style);
+  }, []);
+
+  // Measure the true unit width after fonts load
+  useLayoutEffect(() => {
+    const measure = () => {
+      const cw = containerRef.current?.getBoundingClientRect().width ?? window.innerWidth;
+      setSpacerWidth(Math.ceil(cw));
+    };
+    measure();
+
+    const onResize = () => { measure(); };
+    window.addEventListener('resize', onResize);
+
+    let fontDone = false;
+    const measureUnit = () => {
+      if (!unitRef.current) return;
+      const uw = Math.ceil(unitRef.current.getBoundingClientRect().width);
+      setUnitWidth(uw);
+      setReady(uw > 0);
+    };
+
+    // Wait for fonts if available
+    // @ts-ignore
+    const fonts = (document as any).fonts;
+    if (fonts?.ready && typeof fonts.ready.then === 'function') {
+      fonts.ready.then(() => { fontDone = true; measure(); measureUnit(); });
+    }
+
+    // Fallback
+    const rAF = requestAnimationFrame(() => { if (!fontDone) { measureUnit(); } });
+
+    return () => {
+      window.removeEventListener('resize', onResize);
+      cancelAnimationFrame(rAF);
+    };
+  }, [bannerText]);
 
   // Filter data based on time range and get only last entry per day
   const filteredData = useMemo(() => {
@@ -215,11 +275,30 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
     
     // Convert back to array and sort by date
     const result = Array.from(dailyData.values()).sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
-    
+
     console.log(`Time range: ${timeRange}, Total points: ${historicalData.length}, Daily points: ${result.length}`);
-    
+
     return result;
   }, [historicalData, timeRange]);
+
+  // Get providers sorted by latest model count in the selected time range
+  const availableProviders = useMemo(() => {
+    if (filteredData.length === 0) {
+      return { inferenceProviders: [], modelProviders: [] };
+    }
+
+    // Get the latest data point
+    const latestPoint = filteredData[filteredData.length - 1];
+
+    return {
+      inferenceProviders: Object.entries(latestPoint.providerCounts.inferenceProviders)
+        .map(([provider, count]) => ({ provider, count }))
+        .sort((a, b) => b.count - a.count),
+      modelProviders: Object.entries(latestPoint.providerCounts.modelProviders)
+        .map(([provider, count]) => ({ provider, count }))
+        .sort((a, b) => b.count - a.count)
+    };
+  }, [filteredData]);
 
   // Prepare chart data
   const chartData = useMemo(() => {
@@ -613,20 +692,21 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
               {/* Inference Providers */}
               <div>
                 <h3 className={`text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Inference Providers (Dashed Lines)
+                  Inference Providers (Dashed Lines) - <span className="text-xs font-normal opacity-75">(latest count)</span>
                 </h3>
                 <div className="flex flex-wrap gap-2">
-                  {availableProviders.inferenceProviders.map(provider => (
+                  {availableProviders.inferenceProviders.map(item => (
                     <button
-                      key={provider}
-                      onClick={() => toggleProvider(provider, 'inference')}
-                      className={`px-3 py-1 text-xs rounded-md transition-colors ${
-                        selectedInferenceProviders.has(provider)
+                      key={item.provider}
+                      onClick={() => toggleProvider(item.provider, 'inference')}
+                      className={`px-3 py-1 text-xs rounded-md flex items-center gap-2 transition-colors ${
+                        selectedInferenceProviders.has(item.provider)
                           ? 'bg-blue-600 text-white'
                           : darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                       }`}
                     >
-                      {provider}
+                      <span>{item.provider}</span>
+                      <span className="font-mono text-xs opacity-75">({item.count})</span>
                     </button>
                   ))}
                 </div>
@@ -635,20 +715,21 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
               {/* Model Providers */}
               <div>
                 <h3 className={`text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Model Providers (Dotted Lines)
+                  Model Providers (Dotted Lines) - <span className="text-xs font-normal opacity-75">(latest count)</span>
                 </h3>
                 <div className="flex flex-wrap gap-2">
-                  {availableProviders.modelProviders.map(provider => (
+                  {availableProviders.modelProviders.map(item => (
                     <button
-                      key={provider}
-                      onClick={() => toggleProvider(provider, 'model')}
-                      className={`px-3 py-1 text-xs rounded-md transition-colors ${
-                        selectedModelProviders.has(provider)
+                      key={item.provider}
+                      onClick={() => toggleProvider(item.provider, 'model')}
+                      className={`px-3 py-1 text-xs rounded-md flex items-center gap-2 transition-colors ${
+                        selectedModelProviders.has(item.provider)
                           ? 'bg-green-600 text-white'
                           : darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                       }`}
                     >
-                      {provider}
+                      <span>{item.provider}</span>
+                      <span className="font-mono text-xs opacity-75">({item.count})</span>
                     </button>
                   ))}
                 </div>

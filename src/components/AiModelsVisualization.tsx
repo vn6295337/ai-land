@@ -355,7 +355,7 @@ const AiModelsVisualization = () => {
       window.removeEventListener('resize', onResize);
       cancelAnimationFrame(rAF);
     };
-  }, [bannerText, spacerWidth]);
+  }, [bannerText, loading]);
 
   // Close filter dropdown when clicking outside
   useEffect(() => {
