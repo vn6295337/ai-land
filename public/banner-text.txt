@@ -1,1 +1,1 @@
-Breaking news: 10 Gemini 1.5 models deprecated                                              
+Breaking news: 10 Gemini 1.5 models deprecated. OpenRouter added and then removed meituan/longcat-flash-chat from free tier.                                          

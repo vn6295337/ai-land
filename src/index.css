@@ -121,3 +121,8 @@ All colors MUST be HSL.
 .animate-scroll:hover {
   animation-play-state: paused;
 }
+
+/* Banner pause on hover */
+.banner-scroll-pause:hover {
+  animation-play-state: paused !important;
+}

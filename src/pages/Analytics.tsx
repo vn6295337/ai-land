@@ -245,10 +245,10 @@ const Analytics = () => {
         } border-y-2 my-4`}>
           <div ref={containerRef} className="overflow-hidden">
             <div
-              className="whitespace-nowrap will-change-transform"
+              className="whitespace-nowrap will-change-transform banner-scroll-pause"
               style={{
                 '--d-analytics': `${unitWidth}px`,
-                animation: ready ? 'scrollXAnalytics 6.5s linear infinite' : undefined
+                animation: ready ? 'scrollXAnalytics 9s linear infinite' : undefined
               } as CSSProperties}
             >
               <span ref={unitRef} className="inline-flex items-center flex-shrink-0">
