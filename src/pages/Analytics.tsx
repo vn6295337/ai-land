@@ -248,7 +248,7 @@ const Analytics = () => {
               className="whitespace-nowrap will-change-transform banner-scroll-pause"
               style={{
                 '--d-analytics': `${unitWidth}px`,
-                animation: ready ? 'scrollXAnalytics 9s linear infinite' : undefined
+                animation: ready ? 'scrollXAnalytics 20s linear infinite' : undefined
               } as CSSProperties}
             >
               <span ref={unitRef} className="inline-flex items-center flex-shrink-0">

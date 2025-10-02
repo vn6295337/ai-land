@@ -493,7 +493,7 @@ const AiModelsVisualization = () => {
               className="whitespace-nowrap will-change-transform banner-scroll-pause"
               style={{
                 '--d': `${unitWidth}px`,
-                animation: ready ? 'scrollX 9s linear infinite' : undefined
+                animation: ready ? 'scrollX 20s linear infinite' : undefined
               } as CSSProperties}
             >
               <span ref={unitRef} className="inline-flex items-center flex-shrink-0">
