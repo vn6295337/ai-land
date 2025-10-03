@@ -1,1 +1,1 @@
-Breaking news: 10 Gemini-1.5 models deprecated  |  OpenRouter added, removed, then readded longcat-flash-chat from Meituan in free tier |  OpenRouter added new model - tongyi-deepresearch-30b-a3b from Alibaba |                                        
+Breaking News This Week: Breaking News: Google drops 10 Gemini-1.5 models | OpenRouter free tier — re-adds longcat-flash-chat (Meituan), adds tongyi-deepresearch-30b-a3b (Alibaba), removes gpt-oss-120b
