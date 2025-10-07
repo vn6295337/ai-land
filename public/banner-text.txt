@@ -1,1 +1,1 @@
-Breaking News Last Week: Google deprecates 10 Gemini-1.5 models | OpenRouter free tier — re-adds longcat-flash-chat (Meituan), adds tongyi-deepresearch-30b-a3b (Alibaba), removes gpt-oss-120b, removes grok-4-fast (xAI)
+This Week: OpenRouter free tier — removes kimi-vl-a3b-thinking (Moonshot AI)
