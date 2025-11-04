@@ -65,7 +65,14 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
         const { data, error } = await supabase
           .from('analytics_history')
           .select('*')
-          .order('timestamp', { ascending: true });
+          .order('timestamp', { ascending: true })
+          .limit(10000); // Increase limit to fetch all historical data
+
+        console.log('Raw Supabase response:', {
+          recordCount: data?.length || 0,
+          error,
+          sample: data?.slice(-5).map(d => ({ timestamp: d.timestamp, total: d.total_models }))
+        });
 
         if (error) {
           console.error('Error loading historical data:', error);
@@ -159,7 +166,8 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
         const { data, error } = await supabase
           .from('analytics_history')
           .select('*')
-          .order('timestamp', { ascending: true });
+          .order('timestamp', { ascending: true })
+          .limit(10000); // Increase limit to fetch all historical data
 
         if (!error && data) {
           const formattedData: HistoricalDataPoint[] = data.map((item: any) => ({
@@ -628,7 +636,7 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
         <div className={`text-center py-8 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
           <Calendar className="w-12 h-12 mx-auto mb-4 opacity-50" />
           <p>No historical data available yet.</p>
-          <p className="text-sm mt-2">Data will be collected every 5 minutes when the table refreshes.</p>
+          <p className="text-sm mt-2">Data will be collected every 12 hours when the table refreshes.</p>
         </div>
       </div>
     );
