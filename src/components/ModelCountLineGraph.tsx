@@ -500,6 +500,11 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
           },
           tooltipFormat: 'dd-MMM-yyyy'
         },
+        adapters: {
+          date: {
+            zone: 'utc'
+          }
+        },
         grid: {
           color: darkMode ? '#374151' : '#e5e7eb'
         },
