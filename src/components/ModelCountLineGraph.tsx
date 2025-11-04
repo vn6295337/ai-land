@@ -315,9 +315,9 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
       datasets.push({
         label: 'Total Models',
         data: filteredData.map(point => {
-          // Normalize to midnight for proper x-axis alignment
-          const normalizedDate = new Date(point.timestamp);
-          normalizedDate.setUTCHours(0, 0, 0, 0);
+          // Normalize to midnight UTC for proper x-axis alignment
+          const dateStr = point.timestamp.toISOString().split('T')[0];
+          const normalizedDate = new Date(dateStr + 'T00:00:00.000Z');
           return {
             x: normalizedDate,
             y: point.totalCount
@@ -342,9 +342,9 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
       datasets.push({
         label: `${provider} (Inference Provider)`,
         data: filteredData.map(point => {
-          // Normalize to midnight for proper x-axis alignment
-          const normalizedDate = new Date(point.timestamp);
-          normalizedDate.setUTCHours(0, 0, 0, 0);
+          // Normalize to midnight UTC for proper x-axis alignment
+          const dateStr = point.timestamp.toISOString().split('T')[0];
+          const normalizedDate = new Date(dateStr + 'T00:00:00.000Z');
           return {
             x: normalizedDate,
             y: point.providerCounts.inferenceProviders[provider] || 0
@@ -369,9 +369,9 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
       datasets.push({
         label: `${provider} (Model Provider)`,
         data: filteredData.map(point => {
-          // Normalize to midnight for proper x-axis alignment
-          const normalizedDate = new Date(point.timestamp);
-          normalizedDate.setUTCHours(0, 0, 0, 0);
+          // Normalize to midnight UTC for proper x-axis alignment
+          const dateStr = point.timestamp.toISOString().split('T')[0];
+          const normalizedDate = new Date(dateStr + 'T00:00:00.000Z');
           return {
             x: normalizedDate,
             y: point.providerCounts.modelProviders[provider] || 0
