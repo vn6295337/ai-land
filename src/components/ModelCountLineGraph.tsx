@@ -496,9 +496,9 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
           unit: 'day',
           round: 'day',
           displayFormats: {
-            day: 'DD-MMM-YYYY'
+            day: 'dd-MMM-yyyy'
           },
-          tooltipFormat: 'DD-MMM-YYYY'
+          tooltipFormat: 'dd-MMM-yyyy'
         },
         grid: {
           color: darkMode ? '#374151' : '#e5e7eb'
