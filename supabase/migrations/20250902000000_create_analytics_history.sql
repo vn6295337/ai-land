@@ -26,35 +26,47 @@ ON public.analytics_history
 FOR INSERT
 WITH CHECK (true);
 
--- Function to insert analytics snapshot (prevents duplicates within 5 minutes)
+-- Function to insert analytics snapshot (keeps only latest record per day)
 CREATE OR REPLACE FUNCTION public.insert_analytics_snapshot(
   p_total_models INTEGER,
   p_inference_provider_counts JSONB,
   p_model_provider_counts JSONB
 ) RETURNS BOOLEAN AS $$
 DECLARE
-  last_entry TIMESTAMP WITH TIME ZONE;
+  today_date DATE;
+  existing_id INTEGER;
 BEGIN
-  -- Get the timestamp of the most recent entry
-  SELECT timestamp INTO last_entry 
-  FROM public.analytics_history 
-  ORDER BY timestamp DESC 
+  -- Get today's date in UTC
+  today_date := CURRENT_DATE;
+
+  -- Check if a record for today already exists
+  SELECT id INTO existing_id
+  FROM public.analytics_history
+  WHERE DATE(timestamp) = today_date
   LIMIT 1;
-  
-  -- Only insert if 12 hours or more have passed since last entry
-  IF last_entry IS NULL OR (now() - last_entry) >= INTERVAL '12 hours' THEN
+
+  IF existing_id IS NOT NULL THEN
+    -- Update existing record for today with latest data
+    UPDATE public.analytics_history
+    SET
+      timestamp = now(),
+      total_models = p_total_models,
+      inference_provider_counts = p_inference_provider_counts,
+      model_provider_counts = p_model_provider_counts
+    WHERE id = existing_id;
+    RETURN true;
+  ELSE
+    -- Insert new record for today
     INSERT INTO public.analytics_history (
-      total_models, 
-      inference_provider_counts, 
+      total_models,
+      inference_provider_counts,
       model_provider_counts
     ) VALUES (
-      p_total_models, 
-      p_inference_provider_counts, 
+      p_total_models,
+      p_inference_provider_counts,
       p_model_provider_counts
     );
     RETURN true;
   END IF;
-  
-  RETURN false;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

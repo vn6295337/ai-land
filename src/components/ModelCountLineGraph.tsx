@@ -46,7 +46,7 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
   const [historicalData, setHistoricalData] = useState<HistoricalDataPoint[]>([]);
   const [selectedInferenceProviders, setSelectedInferenceProviders] = useState<Set<string>>(new Set());
   const [selectedModelProviders, setSelectedModelProviders] = useState<Set<string>>(new Set());
-  const [timeRange, setTimeRange] = useState<'24h' | '7d' | '30d' | 'all'>('7d');
+  const [timeRange, setTimeRange] = useState<'7d' | '30d' | 'all'>('7d');
 
   // Banner-related state and refs
   const containerRef = useRef<HTMLDivElement>(null);
@@ -275,7 +275,6 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
     const now = new Date();
     const cutoffTime = (() => {
       switch (timeRange) {
-        case '24h': return new Date(now.getTime() - 24 * 60 * 60 * 1000);
         case '7d': return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         case '30d': return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
         case 'all': return new Date(0);
@@ -645,7 +644,7 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
         <div className={`text-center py-8 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
           <Calendar className="w-12 h-12 mx-auto mb-4 opacity-50" />
           <p>No historical data available yet.</p>
-          <p className="text-sm mt-2">Data will be collected every 12 hours when the table refreshes.</p>
+          <p className="text-sm mt-2">Data is collected automatically when the dashboard refreshes (latest snapshot per day).</p>
         </div>
       </div>
     );
@@ -689,7 +688,6 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
               </span>
               <div className="flex space-x-2">
                 {[
-                  { value: '24h', label: '24 Hours' },
                   { value: '7d', label: '7 Days' },
                   { value: '30d', label: '30 Days' },
                   { value: 'all', label: 'All Time' }
