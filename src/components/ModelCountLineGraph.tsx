@@ -62,11 +62,16 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
   useEffect(() => {
     const loadHistoricalData = async () => {
       try {
+        // Fetch only last 90 days of data to avoid hitting limits
+        const ninetyDaysAgo = new Date();
+        ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
         const { data, error } = await supabase
           .from('analytics_history')
           .select('*')
+          .gte('timestamp', ninetyDaysAgo.toISOString())
           .order('timestamp', { ascending: true })
-          .limit(10000); // Increase limit to fetch all historical data
+          .limit(10000);
 
         console.log('Raw Supabase response:', {
           recordCount: data?.length || 0,
@@ -163,11 +168,15 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
 
       if (success) {
         // Reload historical data to get the latest entry
+        const ninetyDaysAgo = new Date();
+        ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
         const { data, error } = await supabase
           .from('analytics_history')
           .select('*')
+          .gte('timestamp', ninetyDaysAgo.toISOString())
           .order('timestamp', { ascending: true })
-          .limit(10000); // Increase limit to fetch all historical data
+          .limit(10000);
 
         if (!error && data) {
           const formattedData: HistoricalDataPoint[] = data.map((item: any) => ({
