@@ -82,6 +82,15 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
           }
         }));
 
+        console.log('Loaded historical data from Supabase:', {
+          total: formattedData.length,
+          dateRange: formattedData.length > 0 ? {
+            first: formattedData[0].timestamp.toISOString(),
+            last: formattedData[formattedData.length - 1].timestamp.toISOString()
+          } : null,
+          nov3Plus: formattedData.filter(d => d.timestamp >= new Date('2025-11-03T00:00:00Z')).length
+        });
+
         setHistoricalData(formattedData);
       } catch (error) {
         console.error('Error loading historical data:', error);
@@ -276,7 +285,11 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
     // Convert back to array and sort by date
     const result = Array.from(dailyData.values()).sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 
-    console.log(`Time range: ${timeRange}, Total points: ${historicalData.length}, Daily points: ${result.length}`);
+    console.log(`Time range: ${timeRange}, Total points: ${historicalData.length}, Daily points: ${result.length}`, {
+      cutoffTime: cutoffTime.toISOString(),
+      timeFiltered: timeFiltered.length,
+      nov3Plus: result.filter(d => d.timestamp >= new Date('2025-11-03T00:00:00Z')).length
+    });
 
     return result;
   }, [historicalData, timeRange]);
@@ -389,6 +402,13 @@ const ModelCountLineGraph: React.FC<ModelCountLineGraphProps> = ({ currentModels
         pointBorderWidth: 1
       });
       colorIndex++;
+    });
+
+    console.log('Chart data prepared:', {
+      datasets: datasets.length,
+      dataPoints: datasets.length > 0 ? datasets[0].data.length : 0,
+      firstDate: datasets.length > 0 && datasets[0].data.length > 0 ? datasets[0].data[0].x : null,
+      lastDate: datasets.length > 0 && datasets[0].data.length > 0 ? datasets[0].data[datasets[0].data.length - 1].x : null
     });
 
     return { datasets };
