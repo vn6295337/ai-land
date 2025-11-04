@@ -41,8 +41,8 @@ BEGIN
   ORDER BY timestamp DESC 
   LIMIT 1;
   
-  -- Only insert if more than 5 minutes have passed since last entry
-  IF last_entry IS NULL OR (now() - last_entry) > INTERVAL '5 minutes' THEN
+  -- Only insert if 5 minutes or more have passed since last entry
+  IF last_entry IS NULL OR (now() - last_entry) >= INTERVAL '5 minutes' THEN
     INSERT INTO public.analytics_history (
       total_models, 
       inference_provider_counts, 
