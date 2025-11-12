@@ -23,9 +23,17 @@ dist-ssr
 .vscode/*
 !.vscode/extensions.json
 .idea
+.obsidian
 .DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+
+# Build artifacts
+vite.config.ts.timestamp-*.mjs
+
+# Runtime and development files
+runtime-state/
+*.local.json
