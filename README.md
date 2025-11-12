@@ -2,6 +2,35 @@
 
 An interactive React dashboard that visualizes AI models from multiple providers, helping developers discover and compare available models for their projects.
 
+## 🏗️ System Architecture
+
+  This repository is part of a 3-tier AI Intelligence System:
+
+  ```
+  ┌─────────────────────────────────────────────────────────────────┐
+  │                  AI INTELLIGENCE SYSTEM                         │
+  ├─────────────────────────────────────────────────────────────────┤
+  │                                                                 │
+  │  [1] Discovery Pipeline  →  [2] Dashboard  →  [3] API Gateway   │
+  │                                                                 │
+  │      ai-models-           ai-land             askme-cli         │
+  │      discoverer_v3                                              │
+  │                                                                 │
+  │  • 8-stage automation    • Real-time viz     • Smart routing    │
+  │  • Daily updates         • 75+ models        • Multi-provider   │
+  │  • Zero manual work      • Decision support  • Secure access    │
+  └─────────────────────────────────────────────────────────────────┘
+  ```
+
+  **🔗 Related Repositories:**
+  - **[ai-models-discoverer_v3](https://github.com/vn6295337/ai-models-discoverer_v3)** - Automated discovery pipeline 
+  - **[ai-land](https://github.com/vn6295337/ai-land)** - Decision intelligence dashboard *(you are 
+  here)*
+  - **[askme-cli](https://github.com/vn6295337/askme)** - Unified API gateway
+
+  **📊 Data Flow:**
+  Discovery Pipeline → Supabase (`ai_models_main` table) → Dashboard + API Gateway
+
 ## Features
 
 - **Multi-Provider Support**: Aggregates models from 7+ AI providers
