@@ -1,0 +1,1066 @@
+================================================================================
+ASKME-CLI REFINEMENT PLAN
+Analysis Date: 2025-11-11
+Purpose: Portfolio-grade upgrade to match discoverer/ai-land quality standards
+Integration Target: ai-models-discoverer_v3 Supabase database
+================================================================================
+
+## 1. CURRENT ASKME-CLI ARCHITECTURE SUMMARY
+
+### 1.1 Technology Stack
+- Language: Kotlin (JVM 17)
+- Build: Gradle 8.4 with Kotlin DSL
+- HTTP Client: Ktor 2.3.6 (CIO engine)
+- Architecture: Single-module CLI application
+- Backend: Node.js Express proxy (1,938 LOC)
+- Deployment: Backend on Render.com
+
+### 1.2 Current Providers (9 Total)
+**Hardcoded Backends - NOT using free tiers optimally:**
+- Google (Gemini) - via backend proxy
+- Mistral - via backend proxy
+- Cohere - via backend proxy
+- Groq - via backend proxy
+- OpenRouter - via backend proxy
+- HuggingFace - via backend proxy
+- AI21 - via backend proxy
+- Replicate - via backend proxy
+- Llama (Together.ai) - BROKEN backend integration
+
+### 1.3 Current Features
+✅ Multi-provider intelligent selection
+✅ Prompt analysis (code/creative/analytical/math)
+✅ Automatic fallback mechanism
+✅ Performance tracking and statistics
+✅ Interactive and direct question modes
+✅ File-based input
+✅ Rate limiting and behavioral analysis (backend)
+✅ CORS security (backend)
+
+### 1.4 Code Quality Metrics
+- README: 117 lines (basic)
+- CLI Implementation: ~600 LOC (4 Kotlin files)
+- Backend: 1,938 LOC (monolithic server.js)
+- Documentation: 1,949 lines across 11 dev docs
+- Testing: Basic security validation tests only
+- Error Handling: Basic try-catch, generic messages
+- Configuration: Hardcoded provider URLs/models
+
+================================================================================
+
+## 2. GAP ANALYSIS VS PORTFOLIO REPOS
+
+### 2.1 vs ai-models-discoverer_v3 (233,657 LOC Python)
+**Discoverer Strengths:**
+- README: 381 lines, comprehensive architecture diagrams
+- Modular pipeline structure (01_scripts, 02_outputs, 03_configs, 04_utils)
+- Automated daily GitHub Actions workflows
+- Comprehensive reporting (stage reports, execution logs)
+- Supabase database integration (ai_models_main, ai_models_working_version)
+- Environment management (.env.local with multiple providers)
+- Configuration-driven (JSON configs for filters, enrichment, API)
+- Quality assurance (field comparison, data validation)
+- 514 functions/classes across 56 files
+- Detailed error handling with logging
+
+**Askme-CLI Gaps:**
+❌ No database integration (static hardcoded models)
+❌ No automated model discovery/updates
+❌ No configuration system (everything hardcoded)
+❌ No comprehensive error handling/logging
+❌ No reporting or analytics
+❌ No pipeline automation
+❌ Backend dependency (single point of failure)
+❌ No environment-based provider selection
+❌ README lacks architecture diagrams, setup depth
+❌ No structured testing framework
+
+### 2.2 Code Organization Quality
+**Discoverer Pattern:**
+```
+pipeline/
+├── 01_scripts/     # Alphabetically ordered (A-Z)
+├── 02_outputs/     # Generated data + reports
+├── 03_configs/     # JSON configuration files
+└── 04_utils/       # Reusable modules
+```
+
+**Current Askme-CLI:**
+```
+askme-cli/
+├── src/commonTest/  # Basic security tests
+└── cliApp/src/main/kotlin/
+    ├── Main.kt          # 154 LOC
+    ├── AIProvider.kt    # 141 LOC
+    ├── Providers.kt     # 284 LOC (8 providers)
+    └── IntelligentProvider.kt # 251 LOC
+```
+
+**Gap:** No separation of concerns, config mixed with code, no utils layer
+
+### 2.3 Documentation Depth
+**Discoverer README Structure:**
+- Overview with features
+- Architecture diagrams (ASCII art)
+- Pipeline stages table (19 stages documented)
+- Configuration examples
+- Database schema documentation
+- Development guidelines
+- Troubleshooting section
+
+**Askme-CLI README:**
+- Basic feature list
+- Simple installation steps
+- Usage examples
+- No architecture diagrams
+- No development guidelines
+- No troubleshooting details
+
+**Gap:** 3.3x less comprehensive (117 vs 381 lines)
+
+### 2.4 Configuration Management
+**Discoverer:**
+- .env.local for credentials (PIPELINE_SUPABASE_URL, API keys)
+- JSON configs per pipeline (01_api_configuration.json, etc.)
+- Provider enrichment configs
+- Filter configurations (pre/post fetch)
+
+**Askme-CLI:**
+- Backend .env only (not exposed to CLI)
+- All models/URLs hardcoded in Kotlin
+- No user-configurable behavior
+- No environment-based switching
+
+**Gap:** Zero client-side configuration capability
+
+================================================================================
+
+## 3. INTEGRATION REQUIREMENTS WITH DISCOVERER
+
+### 3.1 Discoverer's Supabase Schema (ai_models_main table)
+**Key Fields for CLI Integration:**
+- model_id: Unique identifier (e.g., "google/gemini-1.5-flash")
+- model_name: Display name
+- provider_name: "OpenRouter" | "Google" | "Groq"
+- context_window: Max tokens (integer)
+- modalities: JSON array ["text-to-text", "image-to-text"]
+- license_name: "Apache-2.0" | "Google ToS" | "MIT" | etc.
+- license_url: Full URL to license
+- pricing_prompt: Cost per 1M tokens (decimal or 0 for free)
+- pricing_completion: Cost per 1M tokens
+- is_free: Boolean flag
+- top_provider_rank: Ranking within provider
+- created_at / updated_at: Timestamps
+
+### 3.2 Current Backend Proxy Pattern
+**How it works:**
+1. CLI sends: `{prompt: string, provider: string, model?: string}`
+2. Backend (Render.com) manages API keys for 9 providers
+3. Backend calls provider APIs directly
+4. Returns: `{response: string, provider: string, model: string}`
+
+**Problems:**
+- Backend is centralized single point of failure
+- Models are hardcoded in backend
+- No rate limit awareness from database
+- No free-tier optimization
+- Backend manages all API keys (security risk if compromised)
+
+### 3.3 Proposed Free-Only Provider Architecture
+**Target Providers (3 only):**
+1. **Google AI (Gemini)** - Free tier: 1,500 requests/day
+2. **Groq** - Free tier: 14,400 requests/day (6 requests/min)
+3. **OpenRouter** - Free models available (specific model list from DB)
+
+**Why drop others:**
+- Mistral: No free tier for production (API requires payment)
+- Cohere: Limited free trial only
+- HuggingFace: $0.10/month = ~100 requests (shelved in discoverer)
+- AI21: No free tier
+- Replicate: Pay-per-use only
+- Together.ai (Llama): Backend broken, API issues
+
+### 3.4 Database-Driven Model Discovery Flow
+```
+┌─────────────────────────────────────────────────────────┐
+│ ai-models-discoverer_v3 (Daily GitHub Actions)         │
+│ Fetches models from Google, Groq, OpenRouter APIs      │
+│ Stores in Supabase: ai_models_main                     │
+└─────────────────┬───────────────────────────────────────┘
+                  │
+                  ▼
+┌─────────────────────────────────────────────────────────┐
+│ askme-cli Startup (Refined)                            │
+│ 1. Read .env.local (SUPABASE_URL, API keys)            │
+│ 2. Query Supabase: SELECT * FROM ai_models_main        │
+│    WHERE provider_name IN ('Google','Groq','OpenRouter')│
+│    AND is_free = true                                   │
+│ 3. Build provider list dynamically                     │
+│ 4. Cache locally (expire after 24h)                    │
+└─────────────────┬───────────────────────────────────────┘
+                  │
+                  ▼
+┌─────────────────────────────────────────────────────────┐
+│ User Query                                              │
+│ 1. Analyze prompt (code/creative/math/analytical)      │
+│ 2. Filter models by modality requirements              │
+│ 3. Rank by: rate_limits, context_window, performance   │
+│ 4. Call API directly (no backend proxy)                │
+│ 5. Handle rate limits (429 → fallback)                 │
+└─────────────────────────────────────────────────────────┘
+```
+
+### 3.5 Environment Variables (.env.local)
+**Proposed Structure:**
+```bash
+# Supabase Database (read-only access)
+SUPABASE_URL=https://PROJECT_REF.supabase.co
+SUPABASE_ANON_KEY=eyJhbGciOi... (read-only via RLS)
+
+# Provider API Keys (CLI direct calls)
+GOOGLE_AI_API_KEY=AIzaSy...
+GROQ_API_KEY=gsk_...
+OPENROUTER_API_KEY=sk-or-v1-...
+
+# Optional Configuration
+CACHE_DURATION_HOURS=24
+DEFAULT_PROVIDER=auto
+LOG_LEVEL=INFO
+```
+
+================================================================================
+
+## 4. PHASED REFINEMENT PLAN
+
+### PHASE 1: FOUNDATION & DATABASE INTEGRATION (Week 1)
+**Priority: CRITICAL - Breaks backend dependency**
+
+#### Task 1.1: Environment & Configuration System
+**Files to Create:**
+- `config/default.json` - Default configuration
+- `config/providers.json` - Provider metadata (endpoints, auth)
+- `src/main/kotlin/config/ConfigManager.kt` - Config loader
+- `src/main/kotlin/config/EnvironmentManager.kt` - .env handler
+- `.env.local.example` - Template for users
+
+**Implementation:**
+```kotlin
+// ConfigManager.kt
+object ConfigManager {
+    data class AppConfig(
+        val supabaseUrl: String,
+        val supabaseAnonKey: String,
+        val cacheDurationHours: Int = 24,
+        val defaultProvider: String = "auto",
+        val logLevel: String = "INFO"
+    )
+    
+    fun loadConfig(): AppConfig { /* Load from .env.local */ }
+}
+```
+
+#### Task 1.2: Supabase Database Client
+**Files to Create:**
+- `src/main/kotlin/db/SupabaseClient.kt` - HTTP client for Supabase
+- `src/main/kotlin/db/ModelRepository.kt` - Data access layer
+- `src/main/kotlin/models/AIModel.kt` - Data classes
+
+**Implementation:**
+```kotlin
+// AIModel.kt
+@Serializable
+data class AIModel(
+    val model_id: String,
+    val model_name: String,
+    val provider_name: String,
+    val context_window: Int,
+    val modalities: List<String>,
+    val pricing_prompt: Double,
+    val pricing_completion: Double,
+    val is_free: Boolean,
+    val top_provider_rank: Int?
+)
+
+// ModelRepository.kt
+class ModelRepository(config: AppConfig) {
+    suspend fun fetchFreeModels(): List<AIModel> {
+        // Query: SELECT * FROM ai_models_main 
+        // WHERE is_free = true 
+        // AND provider_name IN ('Google','Groq','OpenRouter')
+        // ORDER BY provider_name, top_provider_rank
+    }
+}
+```
+
+#### Task 1.3: Local Caching System
+**Files to Create:**
+- `src/main/kotlin/cache/ModelCache.kt` - File-based cache
+- `cache/models.json` - Cached model data (gitignored)
+- `cache/last_updated.txt` - Cache timestamp
+
+**Implementation:**
+```kotlin
+class ModelCache(cacheDurationHours: Int) {
+    fun getCachedModels(): List<AIModel>?
+    fun updateCache(models: List<AIModel>)
+    fun isCacheValid(): Boolean  // Check timestamp
+}
+```
+
+#### Task 1.4: Remove Backend Dependency
+**Files to Modify:**
+- Delete: `BaseProvider.callBackend()` method
+- Refactor: Each provider to call APIs directly
+- Add: API key management per provider
+
+**Before:**
+```kotlin
+// BaseProvider.kt
+protected suspend fun callBackend(prompt: String, provider: String, model: String?): String {
+    val response = httpClient.post(BACKEND_URL) { /* ... */ }
+}
+```
+
+**After:**
+```kotlin
+// GoogleProvider.kt
+override suspend fun chat(prompt: String, model: String?): String {
+    val apiKey = ConfigManager.getApiKey("GOOGLE_AI_API_KEY")
+    val response = httpClient.post("https://generativelanguage.googleapis.com/v1/models/${model}:generateContent") {
+        header("x-goog-api-key", apiKey)
+        setBody(GoogleRequest(prompt))
+    }
+}
+```
+
+**Estimated Effort:** 40 hours
+**Deliverables:**
+- Working Supabase integration
+- Dynamic model loading from database
+- Local cache system (24h expiry)
+- Direct API calls (no backend proxy)
+- .env.local configuration support
+
+---
+
+### PHASE 2: CODE QUALITY & ARCHITECTURE (Week 2)
+**Priority: HIGH - Match portfolio standards**
+
+#### Task 2.1: Modular Reorganization
+**New Structure:**
+```
+askme-cli/
+├── config/
+│   ├── default.json
+│   └── providers.json
+├── cache/
+│   ├── models.json
+│   └── last_updated.txt
+├── src/main/kotlin/com/askme/
+│   ├── cli/
+│   │   ├── Main.kt
+│   │   └── InteractiveMode.kt
+│   ├── config/
+│   │   ├── ConfigManager.kt
+│   │   └── EnvironmentManager.kt
+│   ├── db/
+│   │   ├── SupabaseClient.kt
+│   │   └── ModelRepository.kt
+│   ├── cache/
+│   │   └── ModelCache.kt
+│   ├── providers/
+│   │   ├── AIProvider.kt (interface)
+│   │   ├── BaseProvider.kt (abstract)
+│   │   ├── GoogleProvider.kt
+│   │   ├── GroqProvider.kt
+│   │   ├── OpenRouterProvider.kt
+│   │   └── ProviderRegistry.kt
+│   ├── intelligence/
+│   │   ├── PromptAnalyzer.kt
+│   │   ├── ModelSelector.kt
+│   │   └── FallbackHandler.kt
+│   ├── models/
+│   │   ├── AIModel.kt
+│   │   ├── ProviderStats.kt
+│   │   └── PromptAnalysis.kt
+│   └── utils/
+│       ├── Logger.kt
+│       ├── ErrorHandler.kt
+│       └── RateLimitHandler.kt
+└── src/test/kotlin/
+    ├── integration/
+    └── unit/
+```
+
+#### Task 2.2: Error Handling & Logging
+**Files to Create:**
+- `utils/Logger.kt` - Structured logging
+- `utils/ErrorHandler.kt` - Centralized error handling
+- `utils/RateLimitHandler.kt` - 429 response handler
+
+**Implementation:**
+```kotlin
+// ErrorHandler.kt
+sealed class AskmeError {
+    data class NetworkError(val cause: Throwable) : AskmeError()
+    data class RateLimitError(val retryAfter: Int) : AskmeError()
+    data class AuthenticationError(val provider: String) : AskmeError()
+    data class InvalidModelError(val modelId: String) : AskmeError()
+    data class DatabaseError(val message: String) : AskmeError()
+}
+
+object ErrorHandler {
+    fun handle(error: AskmeError): String {
+        return when (error) {
+            is AskmeError.RateLimitError -> 
+                "⏱️ Rate limit reached. Retrying in ${error.retryAfter}s..."
+            is AskmeError.AuthenticationError -> 
+                "🔑 Authentication failed for ${error.provider}. Check API key in .env.local"
+            // etc.
+        }
+    }
+}
+```
+
+#### Task 2.3: Rate Limit Integration
+**Data from Supabase:**
+- Groq: 30 requests/min (free tier)
+- Google: 1,500 requests/day
+- OpenRouter: Varies by model
+
+**Implementation:**
+```kotlin
+class RateLimitHandler(val provider: String) {
+    private val requestTimestamps = mutableListOf<Long>()
+    
+    fun canMakeRequest(model: AIModel): Boolean {
+        // Check against model's rate limit from DB
+    }
+    
+    fun handleRateLimitResponse(retryAfter: Int): Result<Unit> {
+        // Implement exponential backoff
+    }
+}
+```
+
+#### Task 2.4: Comprehensive Testing
+**Test Structure:**
+```
+src/test/kotlin/
+├── unit/
+│   ├── PromptAnalyzerTest.kt
+│   ├── ModelSelectorTest.kt
+│   ├── ConfigManagerTest.kt
+│   └── RateLimitHandlerTest.kt
+└── integration/
+    ├── SupabaseIntegrationTest.kt
+    ├── GoogleProviderTest.kt
+    ├── GroqProviderTest.kt
+    └── OpenRouterProviderTest.kt
+```
+
+**Estimated Effort:** 35 hours
+**Deliverables:**
+- Modular codebase (10+ packages)
+- Comprehensive error handling
+- Rate limit awareness
+- 80%+ test coverage
+- Structured logging
+
+---
+
+### PHASE 3: DOCUMENTATION & PORTFOLIO READINESS (Week 3)
+**Priority: HIGH - Portfolio presentation**
+
+#### Task 3.1: README Enhancement
+**Target: Match discoverer's 381-line comprehensive README**
+
+**New Structure:**
+```markdown
+# AskMe CLI v2.0 - Free AI Model Interface
+
+**Automated Model Discovery** | **Database-Driven** | **3 Free Providers**
+
+[Architecture Diagram - ASCII Art]
+
+## Features
+- ✅ Dynamic model discovery via Supabase
+- ✅ 3 free providers (Google, Groq, OpenRouter)
+- ✅ Intelligent provider selection
+- ✅ Rate-aware fallback system
+- ✅ No backend dependency
+- ✅ Daily automated updates
+
+## Architecture
+[Detailed diagrams showing DB integration]
+
+## Installation
+[Comprehensive setup steps]
+
+## Configuration
+[.env.local examples]
+
+## Usage
+[Multiple examples with expected outputs]
+
+## Development
+[Contributing guidelines, project structure]
+
+## Troubleshooting
+[Common issues and solutions]
+```
+
+#### Task 3.2: Architecture Documentation
+**Files to Create:**
+- `docs/ARCHITECTURE.md` - System design
+- `docs/DATABASE_INTEGRATION.md` - Supabase schema
+- `docs/PROVIDER_GUIDE.md` - Adding new providers
+- `docs/DEVELOPMENT.md` - Dev environment setup
+- `docs/API_DIRECT_CALLS.md` - How direct API calls work
+
+#### Task 3.3: Code Documentation
+**Standards:**
+- KDoc comments for all public APIs
+- Package-level documentation
+- Example usage in comments
+- Architecture decision records (ADRs)
+
+#### Task 3.4: Reporting & Analytics
+**Files to Create:**
+- `utils/PerformanceReporter.kt` - Stats tracking
+- `reports/session_log.txt` - Session history
+- `reports/performance_metrics.json` - Provider analytics
+
+**Implementation:**
+```kotlin
+object PerformanceReporter {
+    fun generateReport(): String {
+        """
+        📊 Session Performance Report
+        ════════════════════════════
+        Total Queries: 47
+        Successful: 45 (95.7%)
+        Failed: 2 (4.3%)
+        
+        Provider Breakdown:
+        • Google: 23 queries, 1.2s avg, 100% success
+        • Groq: 18 queries, 0.8s avg, 88.9% success
+        • OpenRouter: 6 queries, 2.1s avg, 100% success
+        
+        Rate Limits Hit: 1 (Groq at 14:23)
+        Fallbacks Triggered: 2
+        """
+    }
+}
+```
+
+**Estimated Effort:** 25 hours
+**Deliverables:**
+- 300+ line comprehensive README
+- 5 detailed documentation files
+- Full KDoc coverage
+- Performance reporting system
+
+---
+
+### PHASE 4: POLISH & OPTIMIZATION (Week 4)
+**Priority: MEDIUM - Production readiness**
+
+#### Task 4.1: Performance Optimization
+- Parallel API calls for fallback scenarios
+- Connection pooling for Supabase
+- Lazy loading of provider instances
+- Response caching (per session)
+
+#### Task 4.2: User Experience Enhancements
+- Progress indicators for long queries
+- Colorized output (terminal ANSI codes)
+- Provider switching confirmation
+- Model suggestion based on prompt analysis
+
+#### Task 4.3: CI/CD Integration
+**Files to Create:**
+- `.github/workflows/build.yml` - Build on push
+- `.github/workflows/test.yml` - Run tests
+- `.github/workflows/release.yml` - Create releases
+
+#### Task 4.4: Binary Distribution
+- Gradle shadow plugin for fat JAR
+- Native image compilation (GraalVM)
+- Platform-specific installers (Linux, macOS)
+
+**Estimated Effort:** 20 hours
+**Deliverables:**
+- Optimized performance
+- Enhanced UX
+- CI/CD pipelines
+- Distributable binaries
+
+================================================================================
+
+## 5. INTEGRATION POINTS WITH DISCOVERER
+
+### 5.1 Shared Infrastructure
+**Supabase Database:**
+- Discoverer: Writes to `ai_models_main` (daily updates)
+- Askme-CLI: Reads from `ai_models_main` (cached locally)
+- Access: RLS policies allow public read, restricted write
+
+### 5.2 Data Flow Diagram
+```
+┌─────────────────────────────────────────────┐
+│  ai-models-discoverer_v3                   │
+│  ┌──────────────────────────────────────┐  │
+│  │ OpenRouter Pipeline (A-S)            │  │
+│  │ Google Pipeline (A-H)                │  │
+│  │ Groq Pipeline (A-J)                  │  │
+│  └──────────┬───────────────────────────┘  │
+│             │                                │
+│             ▼                                │
+│  ┌──────────────────────────────────────┐  │
+│  │ Supabase: ai_models_main             │  │
+│  │ • 100+ free models                   │  │
+│  │ • License info                       │  │
+│  │ • Rate limits                        │  │
+│  │ • Modalities                         │  │
+│  │ • Updated daily via GitHub Actions   │  │
+│  └──────────┬───────────────────────────┘  │
+└─────────────┼───────────────────────────────┘
+              │
+              │ Read (ANON_KEY)
+              ▼
+┌─────────────────────────────────────────────┐
+│  askme-cli (Refined)                       │
+│  ┌──────────────────────────────────────┐  │
+│  │ Startup: Fetch models from Supabase  │  │
+│  │ Cache: 24h local storage             │  │
+│  │ Runtime: Direct API calls            │  │
+│  └──────────────────────────────────────┘  │
+│                                             │
+│  ┌──────────────────────────────────────┐  │
+│  │ Google API (Gemini)                  │  │
+│  │ Groq API (Llama, Mixtral, Gemma)    │  │
+│  │ OpenRouter API (Aggregated models)  │  │
+│  └──────────────────────────────────────┘  │
+└─────────────────────────────────────────────┘
+```
+
+### 5.3 Environment Alignment
+**Discoverer .env.local:**
+```bash
+PIPELINE_SUPABASE_URL=postgresql://pipeline_writer:...
+SUPABASE_URL=https://...
+SUPABASE_ANON_KEY=eyJhbGci...
+GROQ_API_KEY=gsk_...
+```
+
+**Askme-CLI .env.local (New):**
+```bash
+# Read from same Supabase instance
+SUPABASE_URL=https://...
+SUPABASE_ANON_KEY=eyJhbGci...  # Same as discoverer
+
+# CLI's own API keys for direct calls
+GOOGLE_AI_API_KEY=AIzaSy...
+GROQ_API_KEY=gsk_...
+OPENROUTER_API_KEY=sk-or-v1-...
+```
+
+### 5.4 Model Selection Logic
+**Discoverer provides:**
+- `is_free` flag (Boolean)
+- `provider_name` (String)
+- `top_provider_rank` (Int, nullable)
+- `context_window` (Int)
+- `modalities` (JSON array)
+
+**Askme-CLI uses:**
+1. Filter: `WHERE is_free = true`
+2. Filter: `WHERE provider_name IN ('Google','Groq','OpenRouter')`
+3. Rank by: `top_provider_rank ASC` (per provider)
+4. Filter by modality match (prompt analysis)
+5. Fallback: Next best model if rate limited
+
+================================================================================
+
+## 6. EFFORT ESTIMATION
+
+### 6.1 Phase Breakdown
+| Phase | Tasks | Estimated Hours | Complexity |
+|-------|-------|----------------|------------|
+| Phase 1: Database Integration | 4 tasks | 40h | High |
+| Phase 2: Code Quality | 4 tasks | 35h | Medium |
+| Phase 3: Documentation | 4 tasks | 25h | Medium |
+| Phase 4: Polish & Optimization | 4 tasks | 20h | Low |
+| **TOTAL** | **16 tasks** | **120h** | **~3 weeks** |
+
+### 6.2 Risk Assessment
+**High Risk:**
+- Supabase RLS policy configuration (read-only anon access)
+- API key management security (local .env.local storage)
+- Rate limit handling complexity (3 different providers)
+
+**Medium Risk:**
+- Breaking changes to existing CLI interface
+- Cache invalidation logic (24h expiry)
+- Testing coverage for all 3 providers
+
+**Low Risk:**
+- Documentation updates
+- Performance optimizations
+- UI/UX enhancements
+
+### 6.3 Critical Path
+```
+Week 1: Database Integration (BLOCKER for all else)
+  ├─ Day 1-2: Config system + .env.local
+  ├─ Day 3-4: Supabase client + ModelRepository
+  └─ Day 5: Remove backend dependency, direct API calls
+
+Week 2: Code Quality (Parallel with Week 3)
+  ├─ Day 1-2: Modular reorganization
+  ├─ Day 3-4: Error handling + rate limits
+  └─ Day 5: Testing framework
+
+Week 3: Documentation
+  ├─ Day 1-2: README enhancement (300+ lines)
+  ├─ Day 3-4: Architecture docs (5 files)
+  └─ Day 5: Code documentation (KDoc)
+
+Week 4: Polish (Optional if time-constrained)
+  ├─ Day 1-2: Performance optimization
+  └─ Day 3-4: CI/CD + binary distribution
+```
+
+================================================================================
+
+## 7. SUCCESS CRITERIA
+
+### 7.1 Technical Metrics
+✅ Zero backend dependencies (self-contained CLI)
+✅ 100% free-tier providers only (Google, Groq, OpenRouter)
+✅ Dynamic model discovery from Supabase
+✅ 24h local cache with auto-refresh
+✅ Rate limit aware (429 handling)
+✅ 80%+ test coverage
+✅ <500ms startup time with cache
+✅ <2s query response (avg across providers)
+
+### 7.2 Portfolio Quality Metrics
+✅ README: 300+ lines (match discoverer depth)
+✅ Architecture docs: 5+ detailed files
+✅ Code organization: 10+ packages
+✅ Error messages: Actionable, user-friendly
+✅ KDoc coverage: 100% public APIs
+✅ Example outputs: In README and docs
+
+### 7.3 Integration Success Criteria
+✅ Reads from discoverer's Supabase database
+✅ Shares same .env.local structure
+✅ No duplicate model data storage
+✅ Daily model list updates (cache expiry)
+✅ Works with discoverer's RLS policies
+
+### 7.4 User Experience Criteria
+✅ Zero manual model configuration
+✅ Clear provider selection reasoning
+✅ Graceful fallback on failures
+✅ Performance statistics on demand
+✅ Session history/reports
+✅ <5 min setup time (with API keys)
+
+================================================================================
+
+## 8. FILES REQUIRING UPDATES/CREATION
+
+### 8.1 Files to Create (27 new)
+**Configuration:**
+1. `config/default.json`
+2. `config/providers.json`
+3. `.env.local.example`
+
+**Source Code:**
+4. `src/main/kotlin/config/ConfigManager.kt`
+5. `src/main/kotlin/config/EnvironmentManager.kt`
+6. `src/main/kotlin/db/SupabaseClient.kt`
+7. `src/main/kotlin/db/ModelRepository.kt`
+8. `src/main/kotlin/cache/ModelCache.kt`
+9. `src/main/kotlin/providers/ProviderRegistry.kt`
+10. `src/main/kotlin/intelligence/PromptAnalyzer.kt`
+11. `src/main/kotlin/intelligence/ModelSelector.kt`
+12. `src/main/kotlin/intelligence/FallbackHandler.kt`
+13. `src/main/kotlin/models/AIModel.kt`
+14. `src/main/kotlin/utils/Logger.kt`
+15. `src/main/kotlin/utils/ErrorHandler.kt`
+16. `src/main/kotlin/utils/RateLimitHandler.kt`
+17. `src/main/kotlin/utils/PerformanceReporter.kt`
+
+**Documentation:**
+18. `docs/ARCHITECTURE.md`
+19. `docs/DATABASE_INTEGRATION.md`
+20. `docs/PROVIDER_GUIDE.md`
+21. `docs/DEVELOPMENT.md`
+22. `docs/API_DIRECT_CALLS.md`
+
+**CI/CD:**
+23. `.github/workflows/build.yml`
+24. `.github/workflows/test.yml`
+25. `.github/workflows/release.yml`
+
+**Testing:**
+26. `src/test/kotlin/integration/SupabaseIntegrationTest.kt`
+27. `src/test/kotlin/unit/PromptAnalyzerTest.kt`
+... (additional test files)
+
+### 8.2 Files to Modify (8 existing)
+1. `README.md` - Expand from 117 to 300+ lines
+2. `src/main/kotlin/cli/Main.kt` - Refactor for new architecture
+3. `src/main/kotlin/providers/AIProvider.kt` - Remove backend calls
+4. `src/main/kotlin/providers/BaseProvider.kt` - Direct API integration
+5. `src/main/kotlin/providers/GoogleProvider.kt` - Direct Google AI API
+6. `src/main/kotlin/providers/GroqProvider.kt` - Direct Groq API
+7. `src/main/kotlin/providers/Providers.kt` - Remove HF, AI21, Replicate
+8. `cliApp/build.gradle.kts` - Add Supabase/PostgreSQL dependencies
+
+### 8.3 Files to Delete (5 deprecated)
+1. `src/main/kotlin/providers/CohereProvider.kt` - Not free tier
+2. `src/main/kotlin/providers/HuggingFaceProvider.kt` - Not viable ($0.10/mo)
+3. `src/main/kotlin/providers/AI21Provider.kt` - No free tier
+4. `src/main/kotlin/providers/ReplicateProvider.kt` - No free tier
+5. Remove all references to Together.ai (Llama broken)
+
+### 8.4 Backend Disposition
+**300_implementation/askme-backend/ - OPTIONS:**
+
+**Option A: Archive (Recommended)**
+- Move to `300_implementation/askme-backend-legacy/`
+- Add `DEPRECATED.md` explaining removal
+- Keep for reference/rollback only
+
+**Option B: Repurpose for Analytics**
+- Convert to optional analytics collector
+- CLI sends performance metrics (opt-in)
+- Aggregate usage statistics
+
+**Option C: Delete Entirely**
+- No longer needed with direct API calls
+- Backend was 1,938 LOC of maintenance burden
+
+**Recommendation:** Option A (Archive) for portfolio transparency
+
+================================================================================
+
+## 9. PROVIDER-SPECIFIC IMPLEMENTATION NOTES
+
+### 9.1 Google AI (Gemini)
+**API Endpoint:**
+```
+POST https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent
+Header: x-goog-api-key: YOUR_API_KEY
+```
+
+**Models from Supabase:**
+- gemini-1.5-flash (free tier)
+- gemini-1.5-flash-8b (free tier)
+
+**Rate Limits:**
+- 1,500 requests/day (free)
+- 15 requests/min
+
+**Kotlin Implementation:**
+```kotlin
+class GoogleProvider(val apiKey: String) : BaseProvider() {
+    override suspend fun chat(prompt: String, model: String?): String {
+        val selectedModel = model ?: "gemini-1.5-flash"
+        val response = httpClient.post(
+            "https://generativelanguage.googleapis.com/v1beta/models/$selectedModel:generateContent"
+        ) {
+            header("x-goog-api-key", apiKey)
+            setBody(GoogleRequest(
+                contents = listOf(Content(parts = listOf(Part(text = prompt))))
+            ))
+        }
+        return response.body<GoogleResponse>().candidates.first().content.parts.first().text
+    }
+}
+```
+
+### 9.2 Groq
+**API Endpoint:**
+```
+POST https://api.groq.com/openai/v1/chat/completions
+Header: Authorization: Bearer YOUR_API_KEY
+```
+
+**Models from Supabase:**
+- llama-3.3-70b-versatile
+- llama-3.1-8b-instant
+- mixtral-8x7b-32768
+- gemma2-9b-it
+
+**Rate Limits:**
+- 30 requests/min (free)
+- 14,400 requests/day
+
+**Kotlin Implementation:**
+```kotlin
+class GroqProvider(val apiKey: String) : BaseProvider() {
+    override suspend fun chat(prompt: String, model: String?): String {
+        val selectedModel = model ?: "llama-3.1-8b-instant"
+        val response = httpClient.post(
+            "https://api.groq.com/openai/v1/chat/completions"
+        ) {
+            header("Authorization", "Bearer $apiKey")
+            setBody(OpenAIRequest(
+                model = selectedModel,
+                messages = listOf(Message(role = "user", content = prompt))
+            ))
+        }
+        return response.body<OpenAIResponse>().choices.first().message.content
+    }
+}
+```
+
+### 9.3 OpenRouter
+**API Endpoint:**
+```
+POST https://openrouter.ai/api/v1/chat/completions
+Header: Authorization: Bearer YOUR_API_KEY
+Header: HTTP-Referer: https://your-site.com (optional)
+```
+
+**Free Models from Supabase:**
+- Filter: `WHERE provider_name='OpenRouter' AND is_free=true`
+- Dynamic list (changes frequently)
+- Example: anthropic/claude-3-haiku (sometimes free)
+
+**Rate Limits:**
+- Varies by model
+- Check `X-RateLimit-Remaining` header
+
+**Kotlin Implementation:**
+```kotlin
+class OpenRouterProvider(val apiKey: String) : BaseProvider() {
+    override suspend fun chat(prompt: String, model: String?): String {
+        val selectedModel = model ?: selectBestFreeModel()
+        val response = httpClient.post(
+            "https://openrouter.ai/api/v1/chat/completions"
+        ) {
+            header("Authorization", "Bearer $apiKey")
+            header("HTTP-Referer", "https://github.com/vn6295337/askme")
+            setBody(OpenAIRequest(
+                model = selectedModel,
+                messages = listOf(Message(role = "user", content = prompt))
+            ))
+        }
+        return response.body<OpenAIResponse>().choices.first().message.content
+    }
+}
+```
+
+================================================================================
+
+## 10. MIGRATION GUIDE (For Users)
+
+### 10.1 Breaking Changes
+**v1.0 (Current) → v2.0 (Refined)**
+
+**Removed:**
+- ❌ Backend proxy dependency (Render.com)
+- ❌ Mistral provider (no free tier)
+- ❌ Cohere provider (trial only)
+- ❌ HuggingFace provider (not viable)
+- ❌ AI21 provider (no free tier)
+- ❌ Replicate provider (pay-per-use)
+- ❌ Llama/Together.ai (broken backend)
+
+**Added:**
+- ✅ Local .env.local configuration
+- ✅ Supabase database integration
+- ✅ Dynamic model discovery
+- ✅ Rate limit awareness
+- ✅ Local caching system
+
+### 10.2 Migration Steps
+1. **Update from Git:**
+   ```bash
+   cd askme/300_implementation/askme-cli
+   git pull origin master
+   ```
+
+2. **Create .env.local:**
+   ```bash
+   cp .env.local.example .env.local
+   # Edit with your API keys
+   ```
+
+3. **Install Dependencies:**
+   ```bash
+   ./gradlew clean build
+   ```
+
+4. **Test Configuration:**
+   ```bash
+   ./bin/cliApp --check-config
+   ```
+
+5. **First Run (Model Sync):**
+   ```bash
+   ./bin/cliApp "Hello world"
+   # Downloads models from Supabase (first time only)
+   ```
+
+### 10.3 New Commands
+```bash
+# Check configuration
+./bin/cliApp --check-config
+
+# Force model refresh
+./bin/cliApp --refresh-models
+
+# View cached models
+./bin/cliApp --list-models
+
+# Generate performance report
+./bin/cliApp --report
+
+# Test provider connectivity
+./bin/cliApp --test-providers
+```
+
+================================================================================
+
+## 11. APPENDIX: COMPARISON SUMMARY
+
+### 11.1 Current State vs Target State
+| Aspect | Current (v1.0) | Target (v2.0) |
+|--------|---------------|---------------|
+| **Architecture** | Backend-dependent | Self-contained CLI |
+| **Providers** | 9 providers (many non-free) | 3 free providers only |
+| **Model Discovery** | Hardcoded in code | Dynamic from Supabase |
+| **Configuration** | Backend .env only | Local .env.local |
+| **Rate Limits** | Backend handles | CLI-aware with fallback |
+| **Caching** | None | 24h local cache |
+| **Error Handling** | Generic try-catch | Structured error types |
+| **Documentation** | 117 lines | 300+ lines |
+| **Testing** | Basic security tests | 80%+ coverage |
+| **Code Organization** | 4 Kotlin files | 10+ packages |
+| **Backend Dependency** | Required (SPOF) | None |
+| **Database Integration** | None | Supabase read-only |
+| **Portfolio Quality** | MVP | Production-grade |
+
+### 11.2 Quality Metrics Comparison
+| Metric | ai-models-discoverer_v3 | askme-cli (Current) | askme-cli (Target) |
+|--------|------------------------|---------------------|-------------------|
+| README Lines | 381 | 117 | 300+ |
+| Total LOC | 233,657 (Python) | ~1,200 (Kotlin) | ~2,500 (Kotlin) |
+| Documentation Files | 15+ | 11 | 20+ |
+| Test Coverage | High | Low | 80%+ |
+| Configuration Files | 15+ JSON | 0 | 5+ JSON |
+| Error Handling | Comprehensive | Basic | Comprehensive |
+| Logging | Structured | None | Structured |
+| CI/CD | GitHub Actions | None | GitHub Actions |
+
+================================================================================
+END OF REFINEMENT PLAN
+================================================================================

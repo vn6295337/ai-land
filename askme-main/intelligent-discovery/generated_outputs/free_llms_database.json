@@ -1,0 +1,309 @@
+{
+  "metadata": {
+    "title": "Free AI Models Database",
+    "generatedAt": "2025-07-31T04:02:30.538Z",
+    "totalModels": 20,
+    "categories": [
+      "Text Generation",
+      "Code Generation",
+      "Chat Models",
+      "Reasoning Models",
+      "Multimodal"
+    ],
+    "lastUpdated": "2025-07-31T04:02:30.538Z"
+  },
+  "free_models": [
+    {
+      "name": "Llama 3.1 8B Instruct",
+      "provider": "Meta (via HuggingFace)",
+      "model_id": "meta-llama/Llama-3.1-8B-Instruct",
+      "category": "Text Generation",
+      "cost": "Free",
+      "context_window": 128000,
+      "api_endpoint": "https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct",
+      "capabilities": [
+        "text-generation",
+        "instruct-following",
+        "multilingual"
+      ],
+      "free_tier": "Unlimited on HuggingFace Hub",
+      "license": "Llama 3.1 License"
+    },
+    {
+      "name": "Llama 3.1 70B Instruct",
+      "provider": "Meta (via HuggingFace)",
+      "model_id": "meta-llama/Llama-3.1-70B-Instruct",
+      "category": "Text Generation",
+      "cost": "Free",
+      "context_window": 128000,
+      "api_endpoint": "https://huggingface.co/meta-llama/Llama-3.1-70B-Instruct",
+      "capabilities": [
+        "text-generation",
+        "reasoning",
+        "coding"
+      ],
+      "free_tier": "Free inference API",
+      "license": "Llama 3.1 License"
+    },
+    {
+      "name": "Code Llama 7B Instruct",
+      "provider": "Meta (via HuggingFace)",
+      "model_id": "codellama/CodeLlama-7b-Instruct-hf",
+      "category": "Code Generation",
+      "cost": "Free",
+      "context_window": 16384,
+      "api_endpoint": "https://huggingface.co/codellama/CodeLlama-7b-Instruct-hf",
+      "capabilities": [
+        "code-generation",
+        "code-completion",
+        "debugging"
+      ],
+      "free_tier": "Unlimited",
+      "license": "Llama 2 License"
+    },
+    {
+      "name": "Mistral 7B Instruct",
+      "provider": "Mistral AI (via HuggingFace)",
+      "model_id": "mistralai/Mistral-7B-Instruct-v0.3",
+      "category": "Chat Models",
+      "cost": "Free",
+      "context_window": 32768,
+      "api_endpoint": "https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.3",
+      "capabilities": [
+        "chat",
+        "instruct-following",
+        "reasoning"
+      ],
+      "free_tier": "Free inference",
+      "license": "Apache 2.0"
+    },
+    {
+      "name": "Zephyr 7B Beta",
+      "provider": "HuggingFace",
+      "model_id": "HuggingFaceH4/zephyr-7b-beta",
+      "category": "Chat Models",
+      "cost": "Free",
+      "context_window": 32768,
+      "api_endpoint": "https://huggingface.co/HuggingFaceH4/zephyr-7b-beta",
+      "capabilities": [
+        "chat",
+        "helpful-assistant",
+        "reasoning"
+      ],
+      "free_tier": "Unlimited",
+      "license": "MIT"
+    },
+    {
+      "name": "Gemini 1.5 Flash",
+      "provider": "Google",
+      "model_id": "gemini-1.5-flash",
+      "category": "Multimodal",
+      "cost": "Free (with limits)",
+      "context_window": 1000000,
+      "api_endpoint": "https://ai.google.dev/",
+      "capabilities": [
+        "text",
+        "image",
+        "video",
+        "multimodal"
+      ],
+      "free_tier": "15 requests/minute, 1M tokens/day",
+      "license": "Google Terms"
+    },
+    {
+      "name": "Gemini 1.5 Pro",
+      "provider": "Google",
+      "model_id": "gemini-1.5-pro",
+      "category": "Reasoning Models",
+      "cost": "Free (with limits)",
+      "context_window": 2000000,
+      "api_endpoint": "https://ai.google.dev/",
+      "capabilities": [
+        "reasoning",
+        "analysis",
+        "coding",
+        "multimodal"
+      ],
+      "free_tier": "2 requests/minute",
+      "license": "Google Terms"
+    },
+    {
+      "name": "Mixtral 8x7B Instruct",
+      "provider": "Mistral AI (via OpenRouter)",
+      "model_id": "mistralai/mixtral-8x7b-instruct",
+      "category": "Text Generation",
+      "cost": "Free",
+      "context_window": 32768,
+      "api_endpoint": "https://openrouter.ai/",
+      "capabilities": [
+        "text-generation",
+        "multilingual",
+        "reasoning"
+      ],
+      "free_tier": "Free on OpenRouter",
+      "license": "Apache 2.0"
+    },
+    {
+      "name": "Nous Hermes 2 Mixtral 8x7B",
+      "provider": "NousResearch (via OpenRouter)",
+      "model_id": "nousresearch/nous-hermes-2-mixtral-8x7b-dpo",
+      "category": "Chat Models",
+      "cost": "Free",
+      "context_window": 32768,
+      "api_endpoint": "https://openrouter.ai/",
+      "capabilities": [
+        "chat",
+        "creative-writing",
+        "reasoning"
+      ],
+      "free_tier": "Free tier available",
+      "license": "Apache 2.0"
+    },
+    {
+      "name": "Llama 3.1 70B (Groq)",
+      "provider": "Groq",
+      "model_id": "llama-3.1-70b-versatile",
+      "category": "Text Generation",
+      "cost": "Free (with limits)",
+      "context_window": 131072,
+      "api_endpoint": "https://console.groq.com/",
+      "capabilities": [
+        "text-generation",
+        "reasoning",
+        "fast-inference"
+      ],
+      "free_tier": "30 requests/minute",
+      "license": "Llama 3.1 License"
+    },
+    {
+      "name": "Mixtral 8x7B (Groq)",
+      "provider": "Groq",
+      "model_id": "mixtral-8x7b-32768",
+      "category": "Text Generation",
+      "cost": "Free (with limits)",
+      "context_window": 32768,
+      "api_endpoint": "https://console.groq.com/",
+      "capabilities": [
+        "text-generation",
+        "fast-inference"
+      ],
+      "free_tier": "30 requests/minute",
+      "license": "Apache 2.0"
+    },
+    {
+      "name": "Llama 3.1 8B Instruct (Together)",
+      "provider": "Together AI",
+      "model_id": "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+      "category": "Text Generation",
+      "cost": "Free credits",
+      "context_window": 131072,
+      "api_endpoint": "https://api.together.xyz/",
+      "capabilities": [
+        "text-generation",
+        "instruct-following"
+      ],
+      "free_tier": "$25 free credits monthly",
+      "license": "Llama 3.1 License"
+    },
+    {
+      "name": "DeepSeek Chat",
+      "provider": "DeepSeek",
+      "model_id": "deepseek-chat",
+      "category": "Chat Models",
+      "cost": "Free (registration required)",
+      "context_window": 32000,
+      "api_endpoint": "https://api.deepseek.com/",
+      "capabilities": [
+        "chat",
+        "reasoning",
+        "coding"
+      ],
+      "free_tier": "Free tier with registration",
+      "license": "DeepSeek Terms"
+    },
+    {
+      "name": "DeepSeek Coder",
+      "provider": "DeepSeek",
+      "model_id": "deepseek-coder",
+      "category": "Code Generation",
+      "cost": "Free (registration required)",
+      "context_window": 16000,
+      "api_endpoint": "https://api.deepseek.com/",
+      "capabilities": [
+        "code-generation",
+        "code-completion",
+        "debugging"
+      ],
+      "free_tier": "Free tier with registration",
+      "license": "DeepSeek Terms"
+    },
+    {
+      "name": "Llama 3.1 Sonar Large",
+      "provider": "Perplexity",
+      "model_id": "llama-3.1-sonar-large-128k-online",
+      "category": "Text Generation",
+      "cost": "Free (registration required)",
+      "context_window": 127072,
+      "api_endpoint": "https://api.perplexity.ai/",
+      "capabilities": [
+        "text-generation",
+        "web-search",
+        "real-time"
+      ],
+      "free_tier": "Free tier with registration",
+      "license": "Perplexity Terms"
+    },
+    {
+      "name": "Llama 3.1 8B Instruct",
+      "provider": "Fireworks AI",
+      "model_id": "accounts/fireworks/models/llama-v3p1-8b-instruct",
+      "category": "Text Generation",
+      "cost": "Free (registration required)",
+      "context_window": 131072,
+      "api_endpoint": "https://api.fireworks.ai/",
+      "capabilities": [
+        "text-generation",
+        "fast-inference"
+      ],
+      "free_tier": "Free tier with registration",
+      "license": "Llama 3.1 License"
+    }
+  ],
+  "usage_guides": {
+    "huggingface": {
+      "setup": "HuggingFace Inference API - No installation required",
+      "example": "POST https://api-inference.huggingface.co/models/meta-llama/Llama-3.1-8B-Instruct"
+    },
+    "google_ai": {
+      "setup": "pip install google-generativeai",
+      "example": "import google.generativeai as genai; genai.configure(api_key='YOUR_API_KEY')"
+    },
+    "openrouter": {
+      "setup": "HTTP API with OpenAI-compatible endpoints",
+      "example": "curl -X POST 'https://openrouter.ai/api/v1/chat/completions'"
+    },
+    "groq": {
+      "setup": "pip install groq",
+      "example": "from groq import Groq; client = Groq(api_key='YOUR_API_KEY')"
+    },
+    "deepseek": {
+      "setup": "Sign up at https://platform.deepseek.com/ for free API key",
+      "example": "curl -X POST 'https://api.deepseek.com/chat/completions' -H 'Authorization: Bearer YOUR_API_KEY'"
+    },
+    "perplexity": {
+      "setup": "Sign up at https://www.perplexity.ai/settings/api for free API key",
+      "example": "curl -X POST 'https://api.perplexity.ai/chat/completions' -H 'Authorization: Bearer YOUR_API_KEY'"
+    },
+    "fireworks": {
+      "setup": "Sign up at https://fireworks.ai/ for free API key",
+      "example": "curl -X POST 'https://api.fireworks.ai/inference/v1/chat/completions' -H 'Authorization: Bearer YOUR_API_KEY'"
+    }
+  },
+  "categories_breakdown": {
+    "Text Generation": 10,
+    "Code Generation": 2,
+    "Chat Models": 5,
+    "Reasoning Models": 2,
+    "Multimodal": 1
+  }
+}

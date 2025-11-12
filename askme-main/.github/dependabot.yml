@@ -1,0 +1,15 @@
+version: 2
+updates:
+  - package-ecosystem: "gradle"
+    directory: "/src/askme"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 5
+    target-branch: "main"
+    reviewers:
+      - "askme-maintainers"
+    assignees:
+      - "askme-maintainers"
+    commit-message:
+      prefix: "deps"
+      include: "scope"

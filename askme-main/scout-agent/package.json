@@ -1,0 +1,34 @@
+{
+  "name": "askme-scout-agent",
+  "version": "1.0.0",
+  "description": "Model validation and discovery agent for AskMe CLI",
+  "main": "validate-models.js",
+  "scripts": {
+    "validate": "node validate-models.js",
+    "research": "node research-api-models.js",
+    "analyze": "node analyze-models.js", 
+    "debug": "node debug-backend.js",
+    "update-backend": "node validate-models-backend.js",
+    "full-validation": "npm run validate && npm run research && npm run analyze && npm run debug && npm run update-backend"
+  },
+  "dependencies": {
+    "axios": "^1.6.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vn6295337/askme.git"
+  },
+  "keywords": [
+    "llm",
+    "scout",
+    "agent",
+    "validation",
+    "askme"
+  ],
+  "author": "vigneshn",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/vn6295337/askme/issues"
+  },
+  "homepage": "https://github.com/vn6295337/askme#readme"
+}

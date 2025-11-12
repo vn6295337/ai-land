@@ -1,0 +1,62 @@
+{
+  "rotation_settings": {
+    "max_usage_per_key": 50,
+    "rotation_interval_ms": 300000,
+    "max_errors_per_key": 3,
+    "enable_auto_rotation": true,
+    "retry_attempts": 2
+  },
+  "provider_settings": {
+    "ai21": {
+      "max_usage_per_key": 30,
+      "rotation_interval_ms": 600000,
+      "rate_limit_per_minute": 10
+    },
+    "artificialanalysis": {
+      "max_usage_per_key": 80,
+      "rotation_interval_ms": 240000,
+      "rate_limit_per_minute": 100
+    },
+    "cohere": {
+      "max_usage_per_key": 40,
+      "rotation_interval_ms": 300000,
+      "rate_limit_per_minute": 20
+    },
+    "google": {
+      "max_usage_per_key": 60,
+      "rotation_interval_ms": 180000,
+      "rate_limit_per_minute": 60
+    },
+    "groq": {
+      "max_usage_per_key": 25,
+      "rotation_interval_ms": 120000,
+      "rate_limit_per_minute": 30
+    },
+    "huggingface": {
+      "max_usage_per_key": 70,
+      "rotation_interval_ms": 200000,
+      "rate_limit_per_minute": 80
+    },
+    "mistral": {
+      "max_usage_per_key": 35,
+      "rotation_interval_ms": 300000,
+      "rate_limit_per_minute": 20
+    },
+    "openrouter": {
+      "max_usage_per_key": 100,
+      "rotation_interval_ms": 600000,
+      "rate_limit_per_minute": 200
+    },
+    "together": {
+      "max_usage_per_key": 45,
+      "rotation_interval_ms": 240000,
+      "rate_limit_per_minute": 25
+    }
+  },
+  "monitoring": {
+    "log_rotation_events": true,
+    "track_usage_stats": true,
+    "alert_on_key_exhaustion": true,
+    "export_stats_interval_ms": 1800000
+  }
+}

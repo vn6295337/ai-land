@@ -1,0 +1,27 @@
+{
+  "metadata": {
+    "timestamp": "2025-08-02T11:14:34.879Z",
+    "trigger": "enhanced-scout-agent",
+    "reason": "Test dynamic discovery",
+    "total_providers_tested": 2,
+    "total_models_checked": 0,
+    "total_validated_models": 0,
+    "free_inference_only": true,
+    "providers_with_models": [],
+    "provider_status": {
+      "cohere": {
+        "status": "failed",
+        "error": "Request failed with status code 401",
+        "models_found": 0,
+        "models_validated": 0
+      },
+      "google": {
+        "status": "failed",
+        "error": "Request failed with status code 403",
+        "models_found": 0,
+        "models_validated": 0
+      }
+    }
+  },
+  "models": []
+}

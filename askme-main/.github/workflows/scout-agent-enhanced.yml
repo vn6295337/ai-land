@@ -1,0 +1,182 @@
+name: Scout Agent Enhanced - Free Inference Validation
+
+on:
+  schedule:
+    # Run daily at 6 AM UTC
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      providers:
+        description: 'Comma-separated provider list'
+        required: false
+        default: 'cohere,google,groq,huggingface,mistral,openrouter,together,artificialanalysis'
+      free_only:
+        description: 'Filter for free inference models only'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+        - 'true'
+        - 'false'
+      reason:
+        description: 'Validation reason'
+        required: false
+        default: 'Enhanced scheduled validation'
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  validate-models-enhanced:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: scout-agent/package-lock.json
+        
+    - name: Install Dependencies
+      run: |
+        cd scout-agent
+        npm ci
+        
+    - name: Fetch API Keys from Backend
+      run: |
+        echo "🔑 Fetching API keys from backend..."
+        
+        # Fetch API keys from backend proxy
+        BACKEND_RESPONSE=$(curl -s -f https://askme-backend-proxy.onrender.com/api/keys || echo "FETCH_FAILED")
+        
+        if [ "$BACKEND_RESPONSE" = "FETCH_FAILED" ]; then
+          echo "❌ Failed to fetch API keys from backend"
+          echo "🔄 Falling back to GitHub secrets..."
+          export COHERE_API_KEY="${{ secrets.COHERE_API_KEY }}"
+          export GEMINI_API_KEY="${{ secrets.GEMINI_API_KEY }}"
+          export GROQ_API_KEY="${{ secrets.GROQ_API_KEY }}"
+          export HUGGINGFACE_API_KEY="${{ secrets.HUGGINGFACE_API_KEY }}"
+          export MISTRAL_API_KEY="${{ secrets.MISTRAL_API_KEY }}"
+          export OPENROUTER_API_KEY="${{ secrets.OPENROUTER_API_KEY }}"
+          export TOGETHER_API_KEY="${{ secrets.TOGETHER_API_KEY }}"
+          export ARTIFICIALANALYSIS_API_KEY="${{ secrets.ARTIFICIALANALYSIS_API_KEY }}"
+        else
+          echo "✅ Successfully fetched API keys from backend"
+          # Parse JSON response and set environment variables
+          export COHERE_API_KEY=$(echo "$BACKEND_RESPONSE" | jq -r '.COHERE_API_KEY // empty')
+          export GEMINI_API_KEY=$(echo "$BACKEND_RESPONSE" | jq -r '.GEMINI_API_KEY // empty')
+          export GROQ_API_KEY=$(echo "$BACKEND_RESPONSE" | jq -r '.GROQ_API_KEY // empty')
+          export HUGGINGFACE_API_KEY=$(echo "$BACKEND_RESPONSE" | jq -r '.HUGGINGFACE_API_KEY // empty')
+          export MISTRAL_API_KEY=$(echo "$BACKEND_RESPONSE" | jq -r '.MISTRAL_API_KEY // empty')
+          export OPENROUTER_API_KEY=$(echo "$BACKEND_RESPONSE" | jq -r '.OPENROUTER_API_KEY // empty')
+          export TOGETHER_API_KEY=$(echo "$BACKEND_RESPONSE" | jq -r '.TOGETHER_API_KEY // empty')
+          export ARTIFICIALANALYSIS_API_KEY=$(echo "$BACKEND_RESPONSE" | jq -r '.ARTIFICIALANALYSIS_API_KEY // empty')
+        fi
+        
+        # Export for subsequent steps
+        echo "COHERE_API_KEY=$COHERE_API_KEY" >> $GITHUB_ENV
+        echo "GEMINI_API_KEY=$GEMINI_API_KEY" >> $GITHUB_ENV
+        echo "GROQ_API_KEY=$GROQ_API_KEY" >> $GITHUB_ENV
+        echo "HUGGINGFACE_API_KEY=$HUGGINGFACE_API_KEY" >> $GITHUB_ENV
+        echo "MISTRAL_API_KEY=$MISTRAL_API_KEY" >> $GITHUB_ENV
+        echo "OPENROUTER_API_KEY=$OPENROUTER_API_KEY" >> $GITHUB_ENV
+        echo "TOGETHER_API_KEY=$TOGETHER_API_KEY" >> $GITHUB_ENV
+        echo "ARTIFICIALANALYSIS_API_KEY=$ARTIFICIALANALYSIS_API_KEY" >> $GITHUB_ENV
+        
+    - name: Run Enhanced Model Validation
+      run: |
+        cd scout-agent
+        PROVIDERS="${{ github.event.inputs.providers || 'cohere,google,groq,huggingface,mistral,openrouter,together,artificialanalysis' }}"
+        FREE_ONLY="${{ github.event.inputs.free_only || 'true' }}"
+        REASON="${{ github.event.inputs.reason || 'Enhanced scheduled validation' }}"
+        
+        echo "🚀 Starting Enhanced Scout Agent..."
+        echo "📋 Providers: $PROVIDERS"
+        echo "🆓 Free Only: $FREE_ONLY"
+        echo "📝 Reason: $REASON"
+        
+        node validate-models-enhanced.js \
+          --providers="$PROVIDERS" \
+          --free-only="$FREE_ONLY" \
+          --reason="$REASON"
+          
+    - name: Archive Enhanced Results
+      uses: actions/upload-artifact@v4
+      with:
+        name: enhanced-validation-results-${{ github.run_number }}
+        path: |
+          scout-agent/validated_models_enhanced.json
+        retention-days: 30
+        
+    - name: Commit Enhanced Results
+      run: |
+        cd scout-agent
+        if [ -f "validated_models_enhanced.json" ]; then
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+          # Copy to main results file for backward compatibility
+          cp validated_models_enhanced.json validated_models.json
+          
+          git add validated_models_enhanced.json validated_models.json
+          
+          COMMIT_MSG="🤖 Enhanced Scout Agent: $(date -u '+%Y-%m-%d %H:%M UTC')"
+          COMMIT_MSG="$COMMIT_MSG - Free inference validation"
+          COMMIT_MSG="$COMMIT_MSG - Providers: ${{ github.event.inputs.providers || 'cohere,google,groq,huggingface,mistral,openrouter,together,artificialanalysis' }}"
+          
+          git commit -m "$COMMIT_MSG" || exit 0
+          git push
+        else
+          echo "❌ No validation results found"
+          exit 1
+        fi
+        
+    - name: Generate Summary Report
+      run: |
+        cd scout-agent
+        if [ -f "validated_models_enhanced.json" ]; then
+          echo "# 📊 Enhanced Scout Agent Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Extract summary stats using jq
+          TOTAL_PROVIDERS=$(jq -r '.metadata.total_providers_tested' validated_models_enhanced.json)
+          WORKING_PROVIDERS=$(jq -r '.metadata.providers_with_models | length' validated_models_enhanced.json)
+          TOTAL_MODELS=$(jq -r '.metadata.total_models_checked' validated_models_enhanced.json)
+          VALIDATED_MODELS=$(jq -r '.metadata.total_validated_models' validated_models_enhanced.json)
+          FREE_FILTER=$(jq -r '.metadata.free_inference_only' validated_models_enhanced.json)
+          
+          echo "## 🎯 Validation Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Providers Tested**: $TOTAL_PROVIDERS" >> $GITHUB_STEP_SUMMARY
+          echo "- **Working Providers**: $WORKING_PROVIDERS" >> $GITHUB_STEP_SUMMARY
+          echo "- **Success Rate**: $(echo "scale=1; $WORKING_PROVIDERS * 100 / $TOTAL_PROVIDERS" | bc)%" >> $GITHUB_STEP_SUMMARY
+          echo "- **Models Discovered**: $TOTAL_MODELS" >> $GITHUB_STEP_SUMMARY
+          echo "- **Free Inference Models**: $VALIDATED_MODELS" >> $GITHUB_STEP_SUMMARY
+          echo "- **Free Filter Enabled**: $FREE_FILTER" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          echo "## 🔍 Provider Breakdown" >> $GITHUB_STEP_SUMMARY
+          jq -r '.metadata.provider_status | to_entries[] | "- **\(.key)**: \(.value.status) (\(.value.models_validated // 0) models)"' validated_models_enhanced.json >> $GITHUB_STEP_SUMMARY
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 📈 Free Inference Capabilities" >> $GITHUB_STEP_SUMMARY
+          echo "| Provider | Free Tier | Validated Models |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-----------|------------------|" >> $GITHUB_STEP_SUMMARY
+          
+          jq -r '.metadata.provider_status | to_entries[] | select(.value.status == "success") | "| \(.key) | \(.value.free_tier // "N/A") | \(.value.models_validated // 0) |"' validated_models_enhanced.json >> $GITHUB_STEP_SUMMARY
+        fi
+        
+    - name: Sync to Supabase
+      env:
+        SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      run: |
+        cd scout-agent/data_migration_&analysis
+        if [ -f "../validated_models_enhanced.json" ]; then
+          echo "🔄 Syncing enhanced results to Supabase..."
+          node supabase-sync.js
+        else
+          echo "⚠️ No enhanced validation results to sync"
+        fi
