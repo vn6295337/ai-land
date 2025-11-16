@@ -1,1 +1,1 @@
-This Week - OpenRouter free tier: Removed MiniMax M2, Added KAT-Coder-Pro V1 from Kwaipilot, Added video in input modalities in NVIDIA Nemotron Nano 12B 2 VL. | Google: Deprecated Imagen 3.0 Generate 002.
+This Week - OpenRouter free tier: Llama 3.3 8B Instruct, Llama 4 Maverick, Llama 4 Scout.
