@@ -1,1 +1,1 @@
-This Week - OpenRouter free tier: Llama 3.3 8B Instruct, Llama 4 Maverick, Llama 4 Scout.
+This Week - OpenRouter free tier: Removes Llama 3.3 8B Instruct, Llama 4 Maverick, Llama 4 Scout.
