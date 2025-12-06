@@ -1,1 +1,1 @@
-This Week - OpenRouter free tier: Added nova-2-lite-v1, olmo-3-32b-think. Removed grok-4.1-fast.
+This Week - OpenRouter free tier: Added nova-2-lite-v1, olmo-3-32b-think, gpt-oss-120b. Removed grok-4.1-fast.
