@@ -1,1 +1,1 @@
-This Week - OpenRouter free tier: Added and then removed llama-guard-4-12b. Removed longcat-flash-chat
+This Week - OpenRouter free tier: Added nemotron-3-nano-30b-a3b, Added and then removed llama-guard-4-12b. Removed longcat-flash-chat
