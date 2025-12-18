@@ -1,1 +1,1 @@
-This Week - OpenRouter free tier: Added llama-3.1-405b-instruct, mimo-v2-flash, olmo-3.1-32b-think, qwen-2.5-vl-7b-instruct, deepseek-r1 0528, nemotron-3-nano-30b-a3b. Added and then removed llama-guard-4-12b. Removed longcat-flash-chat
+jgThis Week - OpenRouter free tier: Added llama-3.1-405b-instruct, mimo-v2-flash, olmo-3.1-32b-think, qwen-2.5-vl-7b-instruct, deepseek-r1 0528, nemotron-3-nano-30b-a3b. Added and then removed llama-guard-4-12b. Removed nova-2-lite-v1, longcat-flash-chat
